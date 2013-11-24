@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>UIC Security Study</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8 col-md-offset-2">
+
+                    <div class="page-header">
+                        <h1>UIC Security Study <small>Extension Details</small></h1>
+                    </div>
+
+                    <div id="status"></div>
+
+                    <h2>Configuration</h2>
+
+                    <form role="form">
+                        <div class="form-group">
+                            <label for="email">Email:</label>
+                            <input type="email" class="form-control" name="email" id="email" placeholder="account@example.org">
+                            <p class="help-block">This may be used to keep in touch with you during the study. It will never be associated with any collected data or otherwise tied in any way to your data. Your data will at all times be 100% anonymous.</p>
+                        </div>
+
+                        <button id="submit" class="btn btn-primary btn-lg">Save</button>
+                        <button id="reset" class="btn btn-warning btn-lg">Reset Settings</button>
+                    </form>
+
+                    <hr />
+
+                    <h2>Usage Details</h2>
+
+                    <div class="form-group">
+                        <label>Secret Identifier:</label>
+                        <input type="text" readonly="readonly" class="form-control" name="secret-identifier" id="secret-identifier">
+                        <p class="help-block">This identifier is used to record your information during the study. It is used to keep your data anonymous.At no point will your name, email address, or any other identifying information be stored with your identifier.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Enrollment Date:</label>
+                        <input type="text" readonly="readonly" class="form-control" name="entrollment-date" id="entrollment-date">
+                        <p class="help-block">This is the date you began participating in the study.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Most Recent Check-In Date:</label>
+                        <input type="text" readonly="readonly" class="form-control" name="check-in-date" id="check-in-date">
+                        <p class="help-block">Your extension will periodically checkin with the researchers, to report that the extension is functioning correctly. This is the date of the most recent time your extension reported that everything was ok.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    <script src="js/contrib/jquery-2.0.3.min.js"></script>
+    <script src="js/pages.config.js"></script>
+</html>

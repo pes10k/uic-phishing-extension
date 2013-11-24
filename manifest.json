@@ -1,0 +1,35 @@
+{
+    "name": "UIC Phishing Study",
+    "version": "0.1",
+    "manifest_version": 2,
+    "description": "A tool used for measuring factors on whether a user is suceptable to phishing ",
+    "options_page": "config.html",
+    "content_scripts": [
+        {
+            "matches": ["*://*/*"],
+            "js": ["content.js"]
+        }
+    ],
+    "background": {
+        "scripts": [
+            "js/contrib/jquery-2.0.3.min.js",
+            "js/contrib/sjcl.js",
+            "js/contrib/parse_uri.js",
+            "js/constants.js",
+            "js/utilities.js",
+            "js/model.webservices.js",
+            "js/model.user.js",
+            "js/model.reauths.js",
+            "js/model.cookies.js",
+            "js/model.rules.js",
+            "background.js"
+        ]
+    },
+    "permissions": [
+        "webNavigation",
+        "cookies",
+        "storage",
+        "http://drano-dev.uicbits.net/*",
+        "*://*/*"
+    ]
+}
