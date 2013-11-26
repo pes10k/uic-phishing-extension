@@ -7,7 +7,11 @@
     "content_scripts": [
         {
             "matches": ["*://*/*"],
-            "js": ["content.js"]
+            "js": [
+                "js/uic.js",
+                "js/uic/platforms/chrome/events.js",
+                "js/uic/pages/content.js"
+            ]
         }
     ],
     "background": {
@@ -15,14 +19,16 @@
             "js/contrib/jquery-2.0.3.min.js",
             "js/contrib/sjcl.js",
             "js/contrib/parse_uri.js",
-            "js/constants.js",
-            "js/utilities.js",
-            "js/model.webservices.js",
-            "js/model.user.js",
-            "js/model.reauths.js",
-            "js/model.cookies.js",
-            "js/model.rules.js",
-            "background.js"
+            "js/uic.js",
+            "js/uic/constants.js",
+            "js/uic/platforms/chrome/events.js",
+            "js/uic/platforms/chrome/cookies.js",
+            "js/uic/platforms/chrome/storage.js",
+            "js/uic/models/webservices.js",
+            "js/uic/models/user.js",
+            "js/uic/models/reauths.js",
+            "js/uic/models/rules.js",
+            "js/uic/pages/background.js"
         ]
     },
     "permissions": [

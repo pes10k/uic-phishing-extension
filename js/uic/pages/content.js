@@ -1,18 +1,10 @@
-(function () {
+uic(['pages', 'content'], function (global, ns) {
 
-    var found_forms = [],
+    var events = global.platforms.events.getInstance(),
+        found_forms = [],
         host = window.location.host,
-        should_expire_session = function () {
-            var msg = {"type": "session test", "host": host};
-            chrome.runtime.sendMessage(null, msg, function (rs) {
-                if (rs.should_expire) {
-                    window.location = window.location.href;
-                }
-            });
-        },
         report_password_typed = function () {
-            var msg = {"type": "password"};
-            chrome.runtime.sendMessage(null, msg, function () {});
+            events.sendClientEvent("password", null, function () {});
         },
         watch_form = function (form_node) {
             var password_input = form_node.querySelector("input[type='password']"),
@@ -61,8 +53,7 @@
     // insert an error message into all pages the user visits, asking them
     // to finish configuring the extension.
     (function () {
-        var msg = {"type": "get-config"};
-        chrome.runtime.sendMessage(msg, function (response) {
+        events.sendClientEvent("get-config", null, function (response) {
             var top_bar;
             if (!response || !response.email) {
                 top_bar = document.createElement("DIV");
@@ -85,6 +76,4 @@
         });
         return false;
     }());
-
-//    should_expire_session();
-}());
+});
