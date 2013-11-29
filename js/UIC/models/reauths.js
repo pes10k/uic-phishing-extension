@@ -2,6 +2,7 @@ UIC(["models", "reauths"], function (global, ns) {
 
     var storageModel = global.platforms.storage.getInstance(),
         userModel = global.models.user.getInstance(),
+        sha256 = sjcl.hash.sha256.hash,
         reauthsKey = "reauths";
 
     // Calls a given funciton with an unix timestamp of the last time the
@@ -16,7 +17,7 @@ UIC(["models", "reauths"], function (global, ns) {
 
             storageModel.get(reauthsKey, function (reauths) {
 
-                var hashed_domain = sjcl.hash.sha256.hash(domain + config['id']);
+                var hashed_domain = sha256(domain + config['id']);
 
                 if (!reauths || !(hashed_domain in reauths)) {
                     callback(-1);
@@ -35,7 +36,7 @@ UIC(["models", "reauths"], function (global, ns) {
 
             storageModel.get(reauthsKey, function (reauths) {
 
-                var hashed_domain = sjcl.hash.sha256.hash(domain + config['id']),
+                var hashed_domain = sha256(domain + config['id']),
                     record = {};
 
                 // If this is the first time we've logged anyone out, we
