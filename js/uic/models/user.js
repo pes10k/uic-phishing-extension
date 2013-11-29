@@ -1,4 +1,4 @@
-uic(["models", "user"], function (global, ns) {
+UIC(["models", "user"], function (global, ns) {
 
     var configKey = "ext_config",
         storageModel = global.platforms.storage.getInstance(),

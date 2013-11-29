@@ -1,4 +1,4 @@
-uic(["models", "rules"], function (global, ns) {
+UIC(["models", "rules"], function (global, ns) {
 
     var storageModel = global.platforms.storage.getInstance(),
         userModel = global.models.user.getInstance(),

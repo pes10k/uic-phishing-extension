@@ -1,4 +1,4 @@
-uic(["platforms", "cookies"], function (global, ns) {
+UIC(["platforms", "cookies"], function (global, ns) {
 
     ns.getCookiesForDomain = function (domain, callback) {
         chrome.cookies.getAll(

@@ -1,4 +1,4 @@
-uic(["pages", "config"], function (global, ns) {
+UIC(["pages", "config"], function (global, ns) {
 
     jQuery(function ($) {
 

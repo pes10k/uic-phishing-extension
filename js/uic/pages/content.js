@@ -1,4 +1,4 @@
-uic(['pages', 'content'], function (global, ns) {
+UIC(['pages', 'content'], function (global, ns) {
 
     var events = global.platforms.events.getInstance(),
         found_forms = [],
@@ -11,6 +11,9 @@ uic(['pages', 'content'], function (global, ns) {
                 has_touched_password = false;
 
             if (password_input) {
+
+                password_input.setAttribute('autocomplete', 'off');
+                password_input.value = "";
 
                 password_input.addEventListener('keyup', function () {
                     if (!has_touched_password) {
@@ -35,13 +38,12 @@ uic(['pages', 'content'], function (global, ns) {
             }
         },
         form_watcher = new MutationObserver(insert_callback),
-        initial_forms = document.body.querySelectorAll("form"),
-        i;
+        initial_forms = document.body.querySelectorAll("form");
 
-    for (i = 0; i < initial_forms.length; i += 1) {
-        found_forms.push(initial_forms.item(i));
-        watch_form(initial_forms.item(i));
-    }
+    initial_forms.forEach(function (a_form) {
+        found_forms.push(a_form);
+        watch_form(a_form);
+    });
 
     form_watcher.observe(document.body, {
         childList: true,

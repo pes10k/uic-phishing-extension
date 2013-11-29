@@ -1,6 +1,6 @@
 {
     "name": "UIC Phishing Study",
-    "version": "0.1",
+    "version": "0.2",
     "manifest_version": 2,
     "description": "A tool used for measuring factors on whether a user is suceptable to phishing ",
     "options_page": "config.html",
@@ -8,9 +8,9 @@
         {
             "matches": ["*://*/*"],
             "js": [
-                "js/uic.js",
-                "js/uic/platforms/chrome/events.js",
-                "js/uic/pages/content.js"
+                "js/UIC.js",
+                "js/UIC/platforms/chrome/events.js",
+                "js/UIC/pages/content.js"
             ]
         }
     ],
@@ -19,16 +19,16 @@
             "js/contrib/jquery-2.0.3.min.js",
             "js/contrib/sjcl.js",
             "js/contrib/parse_uri.js",
-            "js/uic.js",
-            "js/uic/constants.js",
-            "js/uic/platforms/chrome/events.js",
-            "js/uic/platforms/chrome/cookies.js",
-            "js/uic/platforms/chrome/storage.js",
-            "js/uic/models/webservices.js",
-            "js/uic/models/user.js",
-            "js/uic/models/reauths.js",
-            "js/uic/models/rules.js",
-            "js/uic/pages/background.js"
+            "js/UIC.js",
+            "js/UIC/constants.js",
+            "js/UIC/platforms/chrome/events.js",
+            "js/UIC/platforms/chrome/cookies.js",
+            "js/UIC/platforms/chrome/storage.js",
+            "js/UIC/models/webservices.js",
+            "js/UIC/models/user.js",
+            "js/UIC/models/reauths.js",
+            "js/UIC/models/rules.js",
+            "js/UIC/pages/background.js"
         ]
     },
     "permissions": [

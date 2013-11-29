@@ -1,4 +1,4 @@
-uic(null, function (global, ns) {
+UIC(null, function (global, ns) {
 
     var platforms = global.platforms,
         cookies = platforms.cookies.getInstance(),

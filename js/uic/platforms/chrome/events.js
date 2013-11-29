@@ -1,4 +1,4 @@
-uic(["platforms", "events"], function (global, ns) {
+UIC(["platforms", "events"], function (global, ns) {
 
     var eventCallbacks = {},
         chrome_event_handler = function (msg, sender, sendResponse) {

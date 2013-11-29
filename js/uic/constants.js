@@ -1,4 +1,4 @@
-uic(['constants'], function (global, ns) {
+UIC(['constants'], function (global, ns) {
 
     // The base url to make webservice calls against
     ns.webserviceDomain = "http://drano-dev.uicbits.net:8070";
