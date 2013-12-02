@@ -1,4 +1,4 @@
-UIC(['pages', 'content'], function (global, ns) {
+__UIC(['pages', 'content'], function (global, ns) {
 
     var events = global.platforms.events.getInstance(),
         found_forms = [],
@@ -40,7 +40,7 @@ UIC(['pages', 'content'], function (global, ns) {
         form_watcher = new MutationObserver(insert_callback),
         initial_forms = document.body.querySelectorAll("form");
 
-    initial_forms.forEach(function (a_form) {
+    Array.prototype.forEach.call(initial_forms, function (a_form) {
         found_forms.push(a_form);
         watch_form(a_form);
     });

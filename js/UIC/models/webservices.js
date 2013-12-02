@@ -1,4 +1,4 @@
-UIC(["models", "webservices"], function (global, ns) {
+__UIC(["models", "webservices"], function (global, ns) {
 
     var constants = global.constants;
 

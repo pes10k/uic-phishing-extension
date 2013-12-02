@@ -1,6 +1,6 @@
 {
     "name": "UIC Phishing Study",
-    "version": "0.2",
+    "version": "0.3",
     "manifest_version": 2,
     "description": "A tool used for measuring factors on whether a user is suceptable to phishing ",
     "options_page": "config.html",

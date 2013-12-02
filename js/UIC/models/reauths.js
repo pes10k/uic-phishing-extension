@@ -1,4 +1,4 @@
-UIC(["models", "reauths"], function (global, ns) {
+__UIC(["models", "reauths"], function (global, ns) {
 
     var storageModel = global.platforms.storage.getInstance(),
         userModel = global.models.user.getInstance(),

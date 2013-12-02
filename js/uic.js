@@ -8,8 +8,8 @@
             return function () {
 
                 if (!found_consts) {
-                    if (window.UIC && window.UIC.constants) {
-                        found_consts = window.UIC.constants;
+                    if (window.__UIC && window.__UIC.constants) {
+                        found_consts = window.__UIC.constants;
                     }
                 }
 
@@ -38,7 +38,7 @@
 
                 var i,
                     next_leaf,
-                    current_leaf = window.UIC;
+                    current_leaf = window.__UIC;
 
                 for (i = 0; i < parts.length; i += 1) {
 
@@ -62,13 +62,13 @@
                         return ns;
                     };
                 }
-                callback(window.UIC, ns);
+                callback(window.__UIC, ns);
             },
         };
 
-    UIC = window.UIC = function (parts, callback) {
+    __UIC = window.__UIC = function (parts, callback) {
         utils.init(parts, callback);
     };
 
-    window.UIC.utils = utils;
+    window.__UIC.utils = utils;
 }());

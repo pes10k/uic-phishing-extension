@@ -1,4 +1,4 @@
-UIC(["platforms", "storage"], function (global, ns) {
+__UIC(["platforms", "storage"], function (global, ns) {
 
     ns.get = function (key, callback) {
         chrome.storage.sync.get(key, function (items) {

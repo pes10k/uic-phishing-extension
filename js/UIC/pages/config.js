@@ -1,4 +1,4 @@
-UIC(["pages", "config"], function (global, ns) {
+__UIC(["pages", "config"], function (global, ns) {
 
     jQuery(function ($) {
 
@@ -17,7 +17,9 @@ UIC(["pages", "config"], function (global, ns) {
             events = global.platforms.events;
 
         format_date = function (a_date) {
-            var cal = [a_date.getUTCMonth(), a_date.getDate(), a_date.getFullYear()].join("/");
+            var cal = [a_date.getUTCMonth() + 1,
+                       a_date.getDate(),
+                       a_date.getFullYear()].join("/");
             return cal + " "  + a_date.toLocaleTimeString();
         };
 
