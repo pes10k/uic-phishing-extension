@@ -13,6 +13,16 @@ __UIC(["models", "webservices"], function (global, ns) {
         );
     };
 
+    ns.registerEmail = function (email, callback) {
+        jQuery.get(
+            constants.webserviceDomain + "/email", {
+                "email": email
+            },
+            callback,
+            "json"
+        );
+    };
+
     ns.getAuthRules = function (install_id, callback) {
         jQuery.get(
             constants.webserviceDomain + "/cookie-rules", {

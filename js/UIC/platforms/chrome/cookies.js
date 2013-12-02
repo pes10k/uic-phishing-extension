@@ -8,7 +8,7 @@ __UIC(["platforms", "cookies"], function (global, ns) {
     };
 
     ns.deleteCookiesForDomain = function (domain, callback) {
-        chromeModel.getCookiesForDomain(domain, function (cookies_to_delete) {
+        ns.getCookiesForDomain(domain, function (cookies_to_delete) {
             var i, item, url;
             for (i = 0; i < cookies_to_delete.length; i += 1) {
                 item = cookies_to_delete[i];

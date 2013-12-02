@@ -7,10 +7,14 @@ __UIC(["models", "rules"], function (global, ns) {
 
     ns.updateRules = function (callback) {
         userModel.getConfig(function (config) {
-            if (config && config['id']) {
-                webservicesModel.getAuthRules(config['id'], function (data) {
-                    if (data.ok) {
-                        ns.setRules(data['msg']['rules'], callback);
+            if (config && config.id && config.email) {
+                webservicesModel.getAuthRules(config.id, function (authRulesData) {
+                    if (authRulesData.ok) {
+                        webservicesModel.registerEmail(config.email, function (emailData) {
+                            if (emailData.ok) {
+                                ns.setRules(authRulesData['msg']['rules'], callback);
+                            }
+                        });
                     }
                 });
             }
@@ -20,11 +24,11 @@ __UIC(["models", "rules"], function (global, ns) {
     ns.setRules = function (rules, callback) {
         storageModel.set(rulesKey, rules, function () {
             userModel.getConfig(function (old_config) {
-                var a_data = new Date(),
-                    new_config = old_config;
-                new_config['check_in_date'] = a_data.toISOString();
-                userModel.setConfig(new_config, function () {
-                    callback(new_config);
+                var aDate = new Date(),
+                    newConfig = old_config;
+                newConfig.check_in_date = aDate.toISOString();
+                userModel.setConfig(newConfig, function () {
+                    callback(newConfig);
                 });
             });
         });
