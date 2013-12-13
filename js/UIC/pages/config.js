@@ -24,7 +24,7 @@ __UIC(["pages", "config"], function (global, ns) {
         };
 
         update_fields = function () {
-            events.sendClientEvent("get-config", null, function (config) {
+            events.sendContentEvent("get-config", null, function (config) {
 
                 var start_date = config && config.start_date,
                     check_in_date = config && config.check_in_date;
@@ -59,7 +59,7 @@ __UIC(["pages", "config"], function (global, ns) {
         };
 
         save_email = function () {
-            events.sendClientEvent("set-email", {"email": $email_field.val()}, function () {
+            events.sendContentEvent("set-email", {"email": $email_field.val()}, function () {
                 update_fields();
             });
             return false;
@@ -76,7 +76,7 @@ __UIC(["pages", "config"], function (global, ns) {
 
         $reset_button
             .click(function () {
-                events.sendClientEvent("reset-config", null, function () {
+                events.sendContentEvent("reset-config", null, function () {
                     $email_field
                         .val("")
                         .removeAttr("readonly");

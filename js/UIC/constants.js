@@ -5,7 +5,13 @@ __UIC(['constants'], function (global, ns) {
 
     // How often, in seconds, must pass before a user needs to reauthenticate
     // on a site.
-    ns.reauthThreshold = 86400;
+    ns.reauthThreshold = 60;
+
+    // How long a page stays in a tab's history before its removed.
+    // This value affects how often a user will need to reautenticate. If a
+    // domain is in any tab's histroy, the user will not need to reauthenticate
+    // with that domain.
+    ns.pageHistoryTime = 60;
 
     ns.version = 1;
 

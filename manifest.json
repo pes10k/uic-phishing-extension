@@ -1,6 +1,6 @@
 {
     "name": "UIC Phishing Study",
-    "version": "0.4",
+    "version": "0.5",
     "manifest_version": 2,
     "description": "A tool used for measuring factors on whether a user is suceptable to phishing ",
     "options_page": "config.html",
@@ -25,6 +25,7 @@
             "js/UIC/platforms/chrome/cookies.js",
             "js/UIC/platforms/chrome/storage.js",
             "js/UIC/models/webservices.js",
+            "js/UIC/models/tabs.js",
             "js/UIC/models/user.js",
             "js/UIC/models/reauths.js",
             "js/UIC/models/rules.js",

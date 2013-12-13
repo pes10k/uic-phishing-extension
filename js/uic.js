@@ -29,7 +29,7 @@
             },
 
             p: function (msg) {
-                if (should_log) {
+                if (true || should_log) {
                     console.log(msg);
                 }
             },

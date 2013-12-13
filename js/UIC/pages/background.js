@@ -8,35 +8,24 @@ __UIC(null, function (global, ns) {
         userModel = models.user.getInstance(),
         rulesModel = models.rules.getInstance(),
         reauthModel = models.reauths.getInstance(),
+        tabHistoryManager,
 
         constants = global.constants,
         util = global.utils,
-        p = util.p,
-        // Keep track of the previous url loaded for each tab.
-        tab_state = {};
+        p = util.p;
 
-    // "Content Scripts" (Chrome's term for scripts that run from user facing)
-    // pages can interact with the background script in. We respond the
-    // following messages:
-    //  - "password"     : User just entered a password on a page, and we should
-    //                     record / make note of it
-    //  - "get-config"   : Page wants to know the current configuration
-    //                     options for the extension. These include
-    //                     "install_id", "start_date", "email" and
-    //                     "check_in_date"
-    //  - "set-email"    : Page is setting the email address associated with
-    //                     this install of the extension
-    //  - "reset-config" : Delete all configuration settings
-    events.onClientEvent("password", function (msg, clientCallback) {
+    tabHistoryManager = new models.tabs.TabsCollection(constants.pageHistoryTime * 1000);
+
+    events.onContentEvent("password", function (msg, clientCallback) {
         p("Recording entering password");
         userModel.recordPasswordEntry(clientCallback);
     });
 
-    events.onClientEvent("get-config", function (msg, clientCallback) {
+    events.onContentEvent("get-config", function (msg, clientCallback) {
         userModel.getConfig(clientCallback);
     });
 
-    events.onClientEvent("set-email", function (msg, clientCallback) {
+    events.onContentEvent("set-email", function (msg, clientCallback) {
         userModel.setEmail(msg.email, function (new_config) {
             rulesModel.updateRules(function (new_rules) {
                 p("Registration complete");
@@ -49,8 +38,16 @@ __UIC(null, function (global, ns) {
         });
     });
 
-    events.onClientEvent("reset-config", function (msg, clientCallback) {
+    events.onContentEvent("reset-config", function (msg, clientCallback) {
         userModel.resetConfig(clientCallback);
+    });
+
+    events.onTabCreate(function (tabId, url) {
+        tabHistoryManager.addTab(tabId);
+    });
+
+    events.onTabClose(function (tabId) {
+        tabHistoryManager.removeTab(tabId);
     });
 
     // Register function so that everytime the user successfully loads a new
@@ -58,17 +55,17 @@ __UIC(null, function (global, ns) {
     // is going to a site they've been to before
     events.onTabLoadComplete(function (tabId, url) {
 
-        tab_state[tabId] = util.extractDomain(url);
-        p("Recorded landing on domain: " + tab_state[tabId]);
+        tabHistoryManager.addPageToTab(tabId, url);
+        p("Recorded landing on page: " + url);
     });
 
     // Also register a listener that will give us a chance to respond whenever
     // a user is requesting a new page.  Here we do the following checks:
     //  0) Note that we only require users in control group to reauth
     //  1) Find the domain the user is attempting to navigate to
-    //  2) Check and see if the user is requesting a page in the same domain in
-    //     in the same tab (if so, never force the user to reauth, to prevent
-    //     them from loosing state)
+    //  2) Check and see if the user is requesting a page in the same domain
+    //     that they were recently visiting. If so, don't force the user to
+    //     reauth, to prevent them from loosing state)
     //  3) If they're moving to a new domain, look to see if domain they're
     //     moving to is one of the domains we want to force users to reauth
     //     on.  If its not, do nothing
@@ -80,19 +77,20 @@ __UIC(null, function (global, ns) {
         // Step 0
         userModel.getConfig(function (config) {
 
+            var matchingTabIds,
+                dest_domain = util.extractDomain(url);
+
             // For testing, assume all users are in experiment group
             if (false && (!config || config.group !== "experiment")) {
                 p("Not altering browser session because user is not in experiment group.");
                 return;
             }
 
-            // Step 1 from above
-            var dest_domain = util.extractDomain(url),
-                previous_domain_in_tab = tab_state[tabId];
-
             // Step 2 from above
-            if (previous_domain_in_tab === dest_domain) {
-                p("not logging user out: same domain");
+            matchingTabIds = tabHistoryManager.isDomainForUrlInHistory(url);
+
+            if (matchingTabIds.length) {
+                p("Not logging user out, user was recently visiting this domain in tab(s): " + matchingTabIds.join(","));
                 return;
             }
 
@@ -128,7 +126,7 @@ __UIC(null, function (global, ns) {
         });
     });
 
-    events.onBrowserReady(function (details) {
+    events.onBrowserReady(function () {
         userModel.updateRules(function (new_rules) {});
     });
 });

@@ -1,7 +1,11 @@
+/**
+ * This module implements the API described in platforms/events.md
+ * for chrome.
+ */
 __UIC(["platforms", "events"], function (global, ns) {
 
     var eventCallbacks = {},
-        chrome_event_handler = function (msg, sender, sendResponse) {
+        chromeEventHandler = function (msg, sender, sendResponse) {
 
             var eventName = msg['event'];
             if (eventCallbacks[eventName]) {
@@ -12,6 +16,26 @@ __UIC(["platforms", "events"], function (global, ns) {
             // or callback to the client on the event
             return true;
         };
+
+    ns.onBrowserReady = function (callback) {
+        chrome.runtime.onStartup.addListener(function (details) {
+            callback();
+        });
+    };
+
+    ns.onTabCreate = function (callback) {
+
+        chrome.tabs.onCreated.addListener(function (aTab) {
+            callback(aTab.id, aTab.url);
+        });
+    };
+
+    ns.onTabClose = function (callback) {
+
+        chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
+            callback(tabId);
+        });
+    };
 
     ns.onTabLoadStart = function (callback) {
 
@@ -33,16 +57,12 @@ __UIC(["platforms", "events"], function (global, ns) {
         });
     };
 
-    ns.onBrowserReady = function (callback) {
-        chrome.runtime.onStartup.addListener(callback);
-    };
-
-    ns.onClientEvent = function (eventName, callback) {
+    ns.onContentEvent = function (eventName, callback) {
         eventCallbacks[eventName] = callback;
         return true;
     };
 
-    ns.sendClientEvent = function (eventName, data, callback) {
+    ns.sendContentEvent = function (eventName, data, callback) {
 
         var key,
             msg = {'event': eventName};
@@ -56,5 +76,5 @@ __UIC(["platforms", "events"], function (global, ns) {
         chrome.runtime.sendMessage(null, msg, callback);
     };
 
-    chrome.runtime.onMessage.addListener(chrome_event_handler);
+    chrome.runtime.onMessage.addListener(chromeEventHandler);
 });
