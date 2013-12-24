@@ -127,6 +127,6 @@ __UIC(null, function (global, ns) {
     });
 
     events.onBrowserReady(function () {
-        userModel.updateRules(function (new_rules) {});
+        rulesModel.updateRules(function (new_rules) {});
     });
 });
