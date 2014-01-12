@@ -8,10 +8,14 @@ __UIC(["models", "rules"], function (global, ns) {
     ns.updateRules = function (callback) {
         userModel.getConfig(function (config) {
             if (config && config.id && config.email) {
-                webservicesModel.getAuthRules(config.id, function (authRulesData) {
-                    if (authRulesData.ok) {
-                        webservicesModel.registerEmail(config.email, function (emailData) {
-                            if (emailData.ok) {
+                webservicesModel.getAuthRules(config.id, function (rules_rs) {
+                    if (!rules_rs.success) {
+                        callback(false);
+                    } else {
+                        webservicesModel.registerEmail(config.email, function (email_rs) {
+                            if (!email_rs.success) {
+                                callback(false);
+                            } else {
                                 ns.setRules(authRulesData['msg']['rules'], callback);
                             }
                         });

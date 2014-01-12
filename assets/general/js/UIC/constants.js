@@ -15,7 +15,7 @@ __UIC(['constants'], function (global, ns) {
 
     ns.version = 1;
 
-    ns.debug = true;
+    ns.debug = false;
 
     ns.browser = (function () {
         return (window.chrome) ? "chrome" : "firefox";

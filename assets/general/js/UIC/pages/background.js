@@ -8,17 +8,29 @@ __UIC(null, function (global, ns) {
         userModel = models.user.getInstance(),
         rulesModel = models.rules.getInstance(),
         reauthModel = models.reauths.getInstance(),
+        loggingModel = models.logging.getInstance(),
         tabHistoryManager,
 
         constants = global.constants,
-        util = global.utils,
-        p = util.p;
+        log = function (msg, type) {
+            if (constants.debug) {
+                loggingModel.log(msg, type);
+            }
+        };
 
     tabHistoryManager = new models.tabs.TabsCollection(constants.pageHistoryTime * 1000);
 
     events.onContentEvent("password", function (msg, clientCallback) {
-        p("Recording entering password");
+        log("Recording entering password");
         userModel.recordPasswordEntry(clientCallback);
+    });
+
+    events.onContentEvent("refresh-logs", function (msg, callback) {
+        loggingModel.get(callback);
+    });
+
+    events.onContentEvent("empty-logs", function (msg, callback) {
+        loggingModel.empty(callback);
     });
 
     events.onContentEvent("get-config", function (msg, clientCallback) {
@@ -26,19 +38,28 @@ __UIC(null, function (global, ns) {
     });
 
     events.onContentEvent("set-email", function (msg, clientCallback) {
-        userModel.setEmail(msg.email, function (new_config) {
-            rulesModel.updateRules(function (new_rules) {
-                p("Registration complete");
-                p(new_config);
 
-                p("Retrivied new cookie rules");
-                p(new_rules);
-                clientCallback(new_rules);
-            });
-        });
+        var successCallback = function (new_config) {
+
+                if (!new_config || new_config.error) {
+                    log("Error registering email address with registration server", "error");
+                    clientCallback(false);
+                    return;
+                }
+
+                rulesModel.updateRules(function (new_rules) {
+                    log("Registration complete", "config");
+                    log(" - Email: " + msg.email, "config");
+                    log("Retrivied " + new_rules.length + " cookie rules", "config");
+                    clientCallback(new_rules);
+                });
+            };
+
+        userModel.setEmail(msg.email, successCallback);
     });
 
     events.onContentEvent("reset-config", function (msg, clientCallback) {
+        log("Resetting configuration", "config");
         userModel.resetConfig(clientCallback);
     });
 
@@ -54,9 +75,8 @@ __UIC(null, function (global, ns) {
     // page, we can keep track of its domain, so that we can see if a user
     // is going to a site they've been to before
     events.onTabLoadComplete(function (tabId, url) {
-
         tabHistoryManager.addPageToTab(tabId, url);
-        p("Recorded landing on page: " + url);
+        log("Recorded landing on page: " + url, "tab");
     });
 
     // Also register a listener that will give us a chance to respond whenever
@@ -82,7 +102,7 @@ __UIC(null, function (global, ns) {
 
             // For testing, assume all users are in experiment group
             if (false && (!config || config.group !== "experiment")) {
-                p("Not altering browser session because user is not in experiment group.");
+                log("Not altering browser session because user is not in experiment group.", "tab");
                 return;
             }
 
@@ -90,7 +110,7 @@ __UIC(null, function (global, ns) {
             matchingTabIds = tabHistoryManager.isDomainForUrlInHistory(url);
 
             if (matchingTabIds.length) {
-                p("Not logging user out, user was recently visiting this domain in tab(s): " + matchingTabIds.join(","));
+                log("Not logging user out. User was recently visiting '" + dest_domain + "' domain in tab(s): " + matchingTabIds.join(","), "tab");
                 return;
             }
 
@@ -98,7 +118,7 @@ __UIC(null, function (global, ns) {
 
                 // Step 3 from above
                 if (!auth_rules[dest_domain]) {
-                    p("not logging user out: not a domain we touch");
+                    log("Not logging user out: '" + dest_domain + "' is a domain we interact with.", "tab");
                     return;
                 }
 
@@ -106,11 +126,11 @@ __UIC(null, function (global, ns) {
 
                     // Step 4 from above
                     if (date !== -1 && (date + (constants.reauthThreshold * 1000)) >= Date.now()) {
-                        p("not logging user out: hasn't been long enough");
+                        log("Not logging user out: Its only been " + ((Date.now() - date) / 1000) + " seconds since we've seen this domain (threshold is " + constants.reauthThreshold + " seconds", "tab");
                         return;
                     }
 
-                    p("Logging user out of " + dest_domain);
+                    log("Logging user out of " + dest_domain, "tab");
 
                     // Otherwise, we should remove all cookies for the domain and
                     // require the user to reauth on the domain.

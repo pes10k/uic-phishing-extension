@@ -16,7 +16,6 @@
                 return found_consts;
             };
         }()),
-        should_log = (consts().debug && console && console.log),
         utils  = {
             // Simple function to extract the domain for a given url.
             // Just the domain, as a string is returned.
@@ -26,12 +25,6 @@
                     num_parts = parts.length;
 
                 return [parts[num_parts - 2], parts[num_parts - 1]].join(".");
-            },
-
-            p: function (msg) {
-                if (true || should_log) {
-                    console.log(msg);
-                }
             },
 
             prepareNamespace: function (parts) {

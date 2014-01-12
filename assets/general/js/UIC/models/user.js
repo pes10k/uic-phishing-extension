@@ -13,13 +13,19 @@ __UIC(["models", "user"], function (global, ns) {
     };
 
     ns.setEmail = function (new_email, callback) {
-        webservicesModel.registerExtension(function (data) {
-            if (data.ok) {
+        webservicesModel.registerExtension(function (rs) {
+
+            if (!rs || rs.error) {
+                callback(rs);
+                return;
+            }
+
+            if (rs.data && rs.data.ok) {
                 var new_config = {
                     "email": new_email,
-                    "id": data["_id"],
-                    "start_date": data["created_on"],
-                    "group": data["group"]
+                    "id": rs.data["_id"],
+                    "start_date": rs.data["created_on"],
+                    "group": rs.data["group"]
                 };
                 ns.setConfig(new_config, callback);
             }
@@ -33,8 +39,8 @@ __UIC(["models", "user"], function (global, ns) {
     ns.recordPasswordEntry = function (callback) {
         ns.getConfig(function (config) {
             if (config && config['id']) {
-                webservicesModel.recordPasswordEntry(config['id'], function (data) {
-                    callback(data && data['ok']);
+                webservicesModel.recordPasswordEntry(config['id'], function (rs) {
+                    callback(rs.success);
                 });
             }
         });
