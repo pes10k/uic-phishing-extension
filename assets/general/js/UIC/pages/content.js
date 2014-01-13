@@ -4,7 +4,7 @@ __UIC(['pages', 'content'], function (global, ns) {
         found_forms = [],
         host = window.location.host,
         report_password_typed = function () {
-            events.sendContentEvent("password", null, function () {});
+            events.sendContentEvent("password", {url: window.location.href}, function () {});
         },
         watch_form = function (form_node) {
             var password_input = form_node.querySelector("input[type='password']"),

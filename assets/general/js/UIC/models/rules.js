@@ -16,7 +16,7 @@ __UIC(["models", "rules"], function (global, ns) {
                             if (!email_rs.success) {
                                 callback(false);
                             } else {
-                                ns.setRules(authRulesData['msg']['rules'], callback);
+                                ns.setRules(rules_rs.data.msg.rules, callback);
                             }
                         });
                     }

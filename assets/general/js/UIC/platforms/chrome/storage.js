@@ -13,7 +13,9 @@ __UIC(["platforms", "storage"], function (global, ns) {
     ns.set = function (key, value, callback) {
         var record = {};
         record[key] = value;
-        chrome.storage.sync.set(record, callback);
+        chrome.storage.sync.set(record, function () {
+            callback(true);
+        });
     };
 
     ns.remove = function (key, callback) {

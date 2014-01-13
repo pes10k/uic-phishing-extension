@@ -5,8 +5,8 @@ __UIC(["pages", "config"], function (global, ns) {
         var $status_section = $("#status").hide(),
             display_status_msg = function (msg) {
                 $status_section.text(msg);
-                $status_section.fadeIn().
-                setTimeout(function () {
+                $status_section.fadeIn();
+                window.setTimeout(function () {
                     $status_section.fadeOut();
                     $status_section.text("");
                 }, 5000);
@@ -55,6 +55,7 @@ __UIC(["pages", "config"], function (global, ns) {
 
                     toggle_log_buttons(false);
                 });
+                return false;
             },
             save_email,
             update_fields,
@@ -146,6 +147,7 @@ __UIC(["pages", "config"], function (global, ns) {
                 events.sendContentEvent("empty-logs", null, function () {
                     referesh_logs();
                 });
+                return false;
             });
             referesh_logs();
         }

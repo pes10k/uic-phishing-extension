@@ -21,7 +21,7 @@ __UIC(null, function (global, ns) {
     tabHistoryManager = new models.tabs.TabsCollection(constants.pageHistoryTime * 1000);
 
     events.onContentEvent("password", function (msg, clientCallback) {
-        log("Recording entering password");
+        log("Recording entering password: " + global.utils.extractDomain(msg.url), "password");
         userModel.recordPasswordEntry(clientCallback);
     });
 
@@ -47,11 +47,10 @@ __UIC(null, function (global, ns) {
                     return;
                 }
 
-                rulesModel.updateRules(function (new_rules) {
+                rulesModel.updateRules(function (update_rs) {
                     log("Registration complete", "config");
-                    log(" - Email: " + msg.email, "config");
-                    log("Retrivied " + new_rules.length + " cookie rules", "config");
-                    clientCallback(new_rules);
+                    log(" - Email: " + update_rs.email, "config");
+                    clientCallback(update_rs);
                 });
             };
 
@@ -76,7 +75,7 @@ __UIC(null, function (global, ns) {
     // is going to a site they've been to before
     events.onTabLoadComplete(function (tabId, url) {
         tabHistoryManager.addPageToTab(tabId, url);
-        log("Recorded landing on page: " + url, "tab");
+        log("Recorded landing on page: " + url, "tab-" + tabId);
     });
 
     // Also register a listener that will give us a chance to respond whenever
@@ -98,11 +97,11 @@ __UIC(null, function (global, ns) {
         userModel.getConfig(function (config) {
 
             var matchingTabIds,
-                dest_domain = util.extractDomain(url);
+                dest_domain = global.utils.extractDomain(url);
 
             // For testing, assume all users are in experiment group
-            if (false && (!config || config.group !== "experiment")) {
-                log("Not altering browser session because user is not in experiment group.", "tab");
+            if (!constants.debug && (!config || config.group !== "experiment")) {
+                log("Not altering browser session because user is not in experiment group.", "tab-" + tabId);
                 return;
             }
 
@@ -110,7 +109,7 @@ __UIC(null, function (global, ns) {
             matchingTabIds = tabHistoryManager.isDomainForUrlInHistory(url);
 
             if (matchingTabIds.length) {
-                log("Not logging user out. User was recently visiting '" + dest_domain + "' domain in tab(s): " + matchingTabIds.join(","), "tab");
+                log("Not logging user out. User was recently visiting '" + dest_domain + "' domain in tab(s): " + matchingTabIds.join(","), "tab-" + tabId);
                 return;
             }
 
@@ -118,7 +117,7 @@ __UIC(null, function (global, ns) {
 
                 // Step 3 from above
                 if (!auth_rules[dest_domain]) {
-                    log("Not logging user out: '" + dest_domain + "' is a domain we interact with.", "tab");
+                    log("Not logging user out: '" + dest_domain + "' is a domain we interact with.", "tab-" + tabId);
                     return;
                 }
 
@@ -126,11 +125,11 @@ __UIC(null, function (global, ns) {
 
                     // Step 4 from above
                     if (date !== -1 && (date + (constants.reauthThreshold * 1000)) >= Date.now()) {
-                        log("Not logging user out: Its only been " + ((Date.now() - date) / 1000) + " seconds since we've seen this domain (threshold is " + constants.reauthThreshold + " seconds", "tab");
+                        log("Not logging user out: Its only been " + ((Date.now() - date) / 1000) + " seconds since we've seen this domain (threshold is " + constants.reauthThreshold + " seconds", "tab-" + tabId);
                         return;
                     }
 
-                    log("Logging user out of " + dest_domain, "tab");
+                    log("Logging user out of " + dest_domain, "tab-" + tabId);
 
                     // Otherwise, we should remove all cookies for the domain and
                     // require the user to reauth on the domain.
