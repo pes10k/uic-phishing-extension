@@ -3,23 +3,25 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 
     <Description about="urn:mozilla:install-manifest">
-        <em:name>UIC Phishing Experiment Extension</em:name>
-        <em:creator>Chris Kanich, Mike Ritter, Peter Snyder</em:creator>
-        <em:aboutURL>chrome://uic-phishing-study/content/about.xul</em:aboutURL>
         <em:id>uic-phishing-study@uic.edu</em:id>
-        <em:description>A tool used for measuring factors on whether a user is suceptable to phishing.</em:description>
-        <em:version>0.1</em:version>
-        <em:homepageURL>https://www.uic.edu/</em:homepageURL>
-        <em:optionsURL>chrome://uic-phishing-study/content/meta-preferences.xul</em:optionsURL>
-        <!-- <em:iconURL>chrome://uic-phishing-study/skin/https-everywhere.png</em:iconURL> -->
-        <em:unpack>true</em:unpack> <!-- Required for Firefox 4 -->
-        <!-- firefox -->
+        <em:type>2</em:type>
+        <em:bootstrap>true</em:bootstrap>
+
+        <!-- Target application: Mozilla Firefox -->
+
         <em:targetApplication>
-            <Description>
-                <em:id>{024079ea-343c-4d4d-96f8-861eab3c6d98}</em:id>
-                <em:minVersion>3.5</em:minVersion>
-                <em:maxVersion>29.*</em:maxVersion>
-            </Description>
+         <Description>
+            <em:id>{024079ea-343c-4d4d-96f8-861eab3c6d98}</em:id>
+            <em:minVersion>24.0</em:minVersion>
+            <em:maxVersion>27.*</em:maxVersion>
+         </Description>
         </em:targetApplication>
+
+        <!-- Front end metadata -->
+
+        <em:version>0.1</em:version>
+        <em:name>UIC Phishing Experiment</em:name>
+        <em:creator>Chris Kanich, Mike Ritter, Peter Snyder</em:creator>
+        <em:description>A tool used for measuring factors on whether a user is suceptable to phishing.</em:description>
     </Description>
 </RDF>

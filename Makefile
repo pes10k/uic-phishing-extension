@@ -5,9 +5,9 @@ CHROME_ASSETS_DIR = ${ASSETS_DIR}/chrome
 FF_ASSETS_DIR = ${ASSETS_DIR}/firefox
 GENERAL_ASSETS_DIR = ${ASSETS_DIR}/general
 JS_ASSETS = ${GENERAL_ASSETS_DIR}/js/UIC
-
-FF_BUILD_DIR = ${BUILD_DIR}/uic-phishing-ff-extension
 CHROME_BUILD_DIR = ${BUILD_DIR}/uic-phishing-chrome-extension
+FF_BUILD_DIR = ${BUILD_DIR}/uic-phishing-ff-extension
+FF_TARGET = uic-phishing-ff-extension.xpi
 
 chrome : clean prepare
 	mkdir -p ${CHROME_BUILD_DIR}/js
@@ -36,12 +36,11 @@ ff : clean prepare
 	mkdir -p ${FF_BUILD_DIR}/js
 	cp -Rv ${FF_ASSETS_DIR}/* ${FF_BUILD_DIR}
 	cp -Rv ${GENERAL_ASSETS_DIR}/css ${FF_BUILD_DIR}/css
-
-	zip ${BUILD_DIR}/uic-phishing-ff-extension.xpi ${FF_ASSETS_DIR}
-	rm -Rf ${FF_BUILD_DIR}
+	sh scripts/package_ff.sh
 
 prepare :
 	mkdir ${BUILD_DIR}
 
 clean :
+	find . -name ".DS_Store" -exec rm {} \;
 	rm -Rvf ${BUILD_DIR}
