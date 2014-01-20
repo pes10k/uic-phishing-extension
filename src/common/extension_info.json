@@ -1,0 +1,28 @@
+{
+    "content_scripts": [
+        "js/UIC.js",
+        "js/UIC/pages/content.js"
+    ],
+    "description": "Extension description",
+    "creator": "Kango",
+    "background_scripts": [
+        "js/contrib/parse_uri.js",
+        "js/UIC.js",
+        "js/UIC/constants.js",
+        "js/UIC/models/user.js",
+        "js/UIC/models/tabs.js",
+        "js/UIC/models/domains.js",
+        "js/UIC/pages/background.js"
+    ],
+    "homepage_url": "http://www.cs.uic.edu/Bits",
+    "version": "0.1",
+    "options_page": "options.html",
+    "name": "UIC Security Study Experiment",
+    "permissions": {
+        "tabs": true,
+        "content_scripts": ["http://*/*", "https://*/*"],
+        "web_navigation": true,
+        "cookies": true,
+        "xhr": ["http://*/*", "https://*/*"]
+    }
+}

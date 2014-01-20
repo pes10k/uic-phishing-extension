@@ -1,0 +1,6 @@
+{
+    "id": "{36220D3D-7D65-41D3-A1CB-F1A657E8E206}",
+    "background_scripts": [
+        "js/UIC/models/cookies.js"
+    ]
+}
