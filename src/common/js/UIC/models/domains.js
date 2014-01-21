@@ -44,12 +44,21 @@ ns._updateDomainRules = function (callback) {
         // What we get back from the webservice is JSON, which is what we
         // serialize and store locally.  What we use internally though
         // is an object wrapped representation of each domain
-        _domainRulesRaw = result.response;
+        _domainRulesRaw = result.response.msg;
         kango.storage.setItem("domain_rules_raw", _domainRulesRaw);
 
         _domainRules = null;
         callback(true);
     });
+};
+
+ns._getDomainRulesRaw = function () {
+
+    if (!_domainRulesRaw) {
+        _domainRulesRaw = kango.storage.getItem("domain_rules_raw");
+    }
+
+    return _domainRulesRaw;
 };
 
 /**
@@ -63,14 +72,16 @@ ns._updateDomainRules = function (callback) {
  */
 ns._parsedDomainRules = function () {
 
-    var i;
+    var i,
+        locallyFetchedDomainRules;
 
     if (_domainRules) {
         return _domainRules;
     }
 
     _domainRules = [];
-    for (i = 0; i < _domainRulesRaw.length; i++) {
+    locallyFetchedDomainRules = this._getDomainRulesRaw();
+    for (i = 0; i < locallyFetchedDomainRules.length; i++) {
         _domainRules.push(new DomainRule(_domainRulesRaw[i]));
     }
     return _domainRules;
@@ -237,12 +248,11 @@ DomainRule = function (domainRule) {
  */
 DomainRule.prototype.getLastReauthTime = function () {
 
-    if (this._lastReauthTime === null) {
-        return this._lastReauth;
+    if (!this._lastReauthTime) {
+        this._lastReauthTime = kango.storage.getItem("domain_rule::" + this.domain);
     }
 
-    this._lastReauthTime = kango.storage.getItem("domain_rule::" + this.domain);
-    return this._lastReauth;
+    return this._lastReauthTime;
 };
 
 /**

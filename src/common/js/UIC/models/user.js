@@ -160,7 +160,7 @@ ns.registerUser = function (email, callback) {
                 return;
             }
 
-            kango.storage.setItem("email", registerResult.response.email);
+            kango.storage.setItem("email", email);
             kango.storage.setItem("installId", registerResult.response._id);
             kango.storage.setItem("group", registerResult.response.group);
             kango.storage.setItem("registrationTime", _now());

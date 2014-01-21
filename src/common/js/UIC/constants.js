@@ -26,7 +26,7 @@ __UIC(['constants'], function (global, ns) {
 
     ns.version = 1;
 
-    ns.debug = false;
+    ns.debug = true;
 
     ns.browser = kango.browser.getName();
 });

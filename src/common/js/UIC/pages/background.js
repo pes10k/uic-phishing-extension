@@ -42,7 +42,7 @@ kango.browser.addEventListener(kango.browser.event.BEFORE_NAVIGATE, function (ev
     var tabId = event.target.getId(),
         url = event.url;
 
-    _tabCouldReauth[tabId] = !tabManager.isDomainForUrlInHistory(url);
+    _tabCouldReauth[tabId] = (tabManager.isDomainForUrlInHistory(url).length === 0);
     tabManager.addPageToTab(tabId, url);
 });
 
@@ -103,15 +103,19 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
-    if ((currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
+    if (!constants.debug && (currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
 
     domainModel.shouldReauthForUrl(url, function (shouldReauth) {
 
-        shouldReauth.setLastReauthTime(_now());
-        tab.dispatchMessage("response-for-reauth", shouldReauth.title);
+        if (!shouldReauth) {
+            tab.dispatchMessage("response-for-reauth", false);
+        } else {
+            shouldReauth.setLastReauthTime(_now());
+            tab.dispatchMessage("response-for-reauth", shouldReauth.title);
+        }
     });
 });
 
