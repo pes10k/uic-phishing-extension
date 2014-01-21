@@ -62,14 +62,40 @@ form_watcher.observe(document.body, {
 kango.dispatchMessage("check-for-reauth");
 
 // Watch for a response to our above request for information about whether
-// we should force the user to reauth on the current page.  If the response
-// is true, it means that the user has been de-authed for the current page,
-// so that we should reload the page to cause them to login again.
+// we should force the user to reauth on the current page.  The response is
+// either false, in which case the user should not be logged out, or its
+// the title of the domain rule that has matched.
 kango.addMessageListener("response-for-reauth", function (event) {
 
-    if (event.data) {
-        // Cause the page to reload
-        window.location.href = window.location.href;
+    var signoutForm;
+
+    if (!event.data) {
+        return;
+    }
+
+    switch (event.data) {
+
+        case "Facebook":
+            signoutForm = document.getElementById("logout_form");
+            if (signoutForm) {
+                signoutForm.submit();
+            }
+            break;
+
+        case "Gmail":
+            window.location.href = "https://mail.google.com/mail/u/0/?logout&hl=en&hlor";
+            break;
+
+        case "Tumblr":
+            window.location.href = "http://www.tumblr.com/logout";
+            break;
+
+        case "Twitter":
+            signoutForm = document.getElementById("signout-form");
+            if (signoutForm) {
+                signoutForm.submit();
+            }
+            break;
     }
 });
 

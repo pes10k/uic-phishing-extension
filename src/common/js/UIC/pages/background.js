@@ -110,28 +110,8 @@ kango.addMessageListener("check-for-reauth", function (event) {
 
     domainModel.shouldReauthForUrl(url, function (shouldReauth) {
 
-        var domainCookies = null,
-            aCookie = null,
-            i,
-            nullCallback = function () {};
-
-        if (!shouldReauth) {
-
-            tab.dispatchMessage("response-for-reauth", false);
-
-        } else {
-
-            cookiesModel = models.cookies.getInstance();
-            domainCookies = shouldReauth.cookies;
-
-            for (i = 0; i < domainCookies.length; i += 1) {
-                aCookie = domainCookies[i];
-                cookiesModel.delete(aCookie.name, aCookie.domain, aCookie.path, aCookie.secure, nullCallback);
-            }
-
-            shouldReauth.setLastReauthTime(_now());
-            tab.dispatchMessage("response-for-reauth", true);
-        }
+        shouldReauth.setLastReauthTime(_now());
+        tab.dispatchMessage("response-for-reauth", shouldReauth.title);
     });
 });
 
