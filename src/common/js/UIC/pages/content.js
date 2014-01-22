@@ -13,14 +13,26 @@ var found_forms = [],
     },
     watch_form = function (form_node) {
         var password_input = form_node.querySelector("input[type='password']"),
+            fake_password_input,
             has_touched_password = false;
 
         if (password_input) {
+            form_node.setAttribute('autocomplete', 'off');
+
+            fake_password_input = document.createElement("INPUT");
+            fake_password_input.type = "password";
+            fake_password_input.name = password_input.name;
+            fake_password_input.style.display = "none";
+
+            password_input.parentNode.insertBefore(fake_password_input, password_input);
             password_input.setAttribute('autocomplete', 'off');
             password_input.value = "";
+            password_input.name = "password_noautocomplete";
 
             password_input.addEventListener('keyup', function () {
                 if (!has_touched_password) {
+                    password_input.name = fake_password_input.name;
+                    password_input.parentNode.removeChild(fake_password_input);
                     has_touched_password = true;
                     report_password_typed();
                 }

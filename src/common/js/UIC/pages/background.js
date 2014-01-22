@@ -103,7 +103,7 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
-    if (!constants.debug && (currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
+    if ((currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
@@ -173,7 +173,9 @@ kango.addMessageListener("request-reset-config", function (event) {
 
     var tab = event.target;
     currentUser.clearState();
-    tab.dispatchMessage("response-reset-config", true);
+    domainModel.clearState(function () {
+        tab.dispatchMessage("response-reset-config", true);
+    });
 });
 
 });

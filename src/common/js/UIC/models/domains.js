@@ -5,6 +5,10 @@ var constants = global.constants,
     _updateTime = null,
     _domainRulesRaw = null,
     _domainRules = null,
+    _updateDomainRules,
+    _getDomainRulesRaw,
+    _getDomainRules,
+    _getParsedDomainRules,
     DomainRule;
 
 /**
@@ -15,7 +19,7 @@ var constants = global.constants,
  *   A callback function that is called with a single parameter, a boolean
  *   description of whether the domain rules were successfully updated.
  */
-ns._updateDomainRules = function (callback) {
+_updateDomainRules = function (callback) {
 
     if (!currentUser.installId()) {
         callback(false);
@@ -52,7 +56,7 @@ ns._updateDomainRules = function (callback) {
     });
 };
 
-ns._getDomainRulesRaw = function () {
+_getDomainRulesRaw = function () {
 
     if (!_domainRulesRaw) {
         _domainRulesRaw = kango.storage.getItem("domain_rules_raw");
@@ -70,7 +74,7 @@ ns._getDomainRulesRaw = function () {
  *   to represent, or an array of DomainRule objects otherwise representing
  *   each of the domains we watch.
  */
-ns._parsedDomainRules = function () {
+_getParsedDomainRules = function () {
 
     var i,
         locallyFetchedDomainRules;
@@ -80,7 +84,7 @@ ns._parsedDomainRules = function () {
     }
 
     _domainRules = [];
-    locallyFetchedDomainRules = this._getDomainRulesRaw();
+    locallyFetchedDomainRules = _getDomainRulesRaw();
     for (i = 0; i < locallyFetchedDomainRules.length; i++) {
         _domainRules.push(new DomainRule(_domainRulesRaw[i]));
     }
@@ -97,7 +101,7 @@ ns._parsedDomainRules = function () {
  *   if the domain rules are not available, or an array containing domain rule
  *   objects.
  */
-ns._getDomainRules = function (callback) {
+_getDomainRules = function (callback) {
 
     if (!currentUser.installId()) {
         callback(false);
@@ -108,10 +112,10 @@ ns._getDomainRules = function (callback) {
     // out of date (ie the last time we updated the rules was before the
     // expiration date) then try to update the rule. Otherwise, pass back the
     // version of the rules that we have.
-    if (!this.getUpdateTime() ||
-        (this.getUpdateTime() + constants.ruleExpirationTime) < global.utils.now()) {
+    if (!ns.getUpdateTime() ||
+        (ns.getUpdateTime() + constants.ruleExpirationTime) < global.utils.now()) {
 
-        this._updateDomainRules(function (wasUpdated) {
+        _updateDomainRules(function (wasUpdated) {
 
             // If we unsuccesfully updated the domain rules, we can't do
             // nothing more, so just cut it all out.
@@ -122,15 +126,19 @@ ns._getDomainRules = function (callback) {
 
             // Otherwise, reparse the raw domain rule data and send that
             // back to the caller
-            callback(ns._parsedDomainRules());
+            callback(_getParsedDomainRules());
         });
         return;
     }
 
     // Otherwise, pass back the objects that we have already parsed
-    callback(ns._parsedDomainRules());
+    callback(_getParsedDomainRules());
     return;
 };
+
+/* ======================= */
+/* ! Begin Public Methods  */
+/* ======================= */
 
 /**
  * Returns the unix timestamp of when the domain rules were last updated,
@@ -163,7 +171,7 @@ ns.getUpdateTime = function () {
  */
 ns.isDomainOfUrlWatched = function (url, callback) {
 
-    this._getDomainRules(function (fetchedDomainRules) {
+    _getDomainRules(function (fetchedDomainRules) {
 
         var i;
 
@@ -197,7 +205,7 @@ ns.isDomainOfUrlWatched = function (url, callback) {
  */
 ns.shouldReauthForUrl = function (url, callback) {
 
-    this._getDomainRules(function (fetchedDomainRules) {
+    _getDomainRules(function (fetchedDomainRules) {
 
         var i;
 
@@ -219,6 +227,37 @@ ns.shouldReauthForUrl = function (url, callback) {
 };
 
 /**
+ * Clears out all persistantly stored information managed by the model
+ *
+ * @param function callback
+ *   A function to be called when all persistant information has been removed
+ */
+ns.clearState = function (callback) {
+
+    _getDomainRules(function (rules) {
+
+        var i;
+
+        if (rules) {
+
+            for (i = 0; i < rules.length; i++) {
+                rules[i].clearState();
+            }
+        }
+
+        _updateTime = null;
+        kango.storage.removeItem("domain_rules_ts");
+
+        _domainRulesRaw = null;
+        kango.storage.removeItem("domain_rules_raw");
+
+        _domainRules = null;
+
+        callback();
+    });
+};
+
+/**
  * Object representing a single cookie rule. Each instance wraps a domain cookie
  * rule provided by the recording web service, and helps describe whether we
  * should log users out of the domain.
@@ -232,6 +271,10 @@ DomainRule = function (domainRule) {
     // The true value is stored in local storage, but also provide a local
     // memory version to make checks faster.
     this._lastReauthTime = null;
+
+    // A key used to store persistant information about the domain, and when
+    // the user was last reauthed on the domain.
+    this._cacheKey = "domain_rule::" + this.domain;
 
     // Stores, as seconds, the maximum amount of time that should pass
     // between logging a user out of a domain.
@@ -249,7 +292,7 @@ DomainRule = function (domainRule) {
 DomainRule.prototype.getLastReauthTime = function () {
 
     if (!this._lastReauthTime) {
-        this._lastReauthTime = kango.storage.getItem("domain_rule::" + this.domain);
+        this._lastReauthTime = kango.storage.getItem(this._cacheKey);
     }
 
     return this._lastReauthTime;
@@ -263,7 +306,7 @@ DomainRule.prototype.getLastReauthTime = function () {
  */
 DomainRule.prototype.setLastReauthTime = function (timestamp) {
     this._lastReauthTime = timestamp;
-    kango.storage.setItem("domain_rule::" + this.domain, timestamp);
+    kango.storage.setItem(this._cacheKey, timestamp);
 };
 
 /**
@@ -313,6 +356,15 @@ DomainRule.prototype.shouldReauthForUrl = function (url) {
     }
 
     return false;
+};
+
+/**
+ * Removes all state information managed by this object, both from memory
+ * and the persistant store.
+ */
+DomainRule.prototype.clearState = function () {
+    kango.storage.removeItem(this._cacheKey);
+    this._lastReauthTime = null;
 };
 
 });
