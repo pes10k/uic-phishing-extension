@@ -199,29 +199,48 @@ ns.isDomainOfUrlWatched = function (url, callback) {
  * @param string url
  *   A url as a string, such as "http://example.org/test.html"
  * @param function callback
- *   A function to call with a single parameter, false if the user should
- *   not be reauthed for the given url, or the matching DomainRule object
- *   for the URL's domain if the user should reauth.
+ *   A function to call with two parameters. The first parameters is a bool,
+ *   false if the user should not be reauthed for the given url, or the matching
+ *   DomainRule object for the URL's domain if the user should reauth.
+ *   The second is null if the user should be reauthed, or one of the following
+ *   strings:
+ *     - "no-rules": Indicates that the user should not be reauthed because
+ *                   we were not able to fetch rules describing which domains
+ *                   should be reauthed
+ *     - "no-match": Indicates that the user should not be reauthed because
+ *                   the given url does not match one of the domains that
+ *                   that should be reauthed
+ *     - "no-time":  Indicates that the user should not be reauthed because
+ *                   the user was already made to reauth on this domain
+ *                   recently
+ *     - "asleep":   Indicates that a domain rule matches and that normally
+ *                   the user would be logged out, but that the matching
+ *                   domain rule is asleep
  */
 ns.shouldReauthForUrl = function (url, callback) {
 
     _getDomainRules(function (fetchedDomainRules) {
 
-        var i;
+        var i,
+            reauthRs;
 
         if (!fetchedDomainRules) {
-            callback(false);
+            callback(false, "no-rules");
             return;
         }
 
         for (i = 0; i < fetchedDomainRules.length; i++) {
-            if (fetchedDomainRules[i].shouldReauthForUrl(url)) {
+            reauthRs = fetchedDomainRules[i].shouldReauthForUrl(url);
+            if (reauthRs === true) {
                 callback(fetchedDomainRules[i]);
+                return;
+            } else if (reauthRs === "no-time" || reauthRs === "asleep") {
+                callback(false, reauthRs);
                 return;
             }
         }
 
-        callback(false);
+        callback(false, "no-match");
         return;
     });
 };
@@ -274,11 +293,70 @@ DomainRule = function (domainRule) {
 
     // A key used to store persistant information about the domain, and when
     // the user was last reauthed on the domain.
-    this._cacheKey = "domain_rule::" + this.domain;
+    this._cacheKeyLastTime = "domain_rule::" + this.domain;
+
+    // The first time the domain rule is "installed", we want the domain to
+    // sleep for a while, a random amount between 4-5 days, before we
+    // ever log a user out.
+    this._cacheKeyWakeTime = "domain_rule_wake_date::" + this.domain;
 
     // Stores, as seconds, the maximum amount of time that should pass
-    // between logging a user out of a domain.
-    this.reauthTime = domainRule.reauthTime || constants.defaultReauthTime;
+    // between logging a user out of a domain, once the domain
+    // is out of sleep time.
+    this._reauthTime = domainRule.reauthTime || constants.defaultReauthTime;
+
+    // The date that this domain rule will become active, lazy loaded, either
+    // from a value determined the first time this value is requested,
+    // or if that value has already been determined, the previously saved
+    // value.
+    this._wakeTime = null;
+};
+
+/**
+ * Returns a timestamp of when this domain rule should become active.
+ *
+ * @return int
+ *   A unix timestamp describing when the domain rule should become active.
+ */
+DomainRule.prototype.getWakeTime = function () {
+
+    var localWakeTime;
+
+    // First check to see if we already have a locally calculated
+    // version of this date
+    if (this._wakeTime) {
+        return this._wakeTime;
+    }
+
+    // Next, see if we have a persistantly stored version of the date.
+    // If so, load it into memory and return the value
+    localWakeTime = kango.storage.getItem(this._cacheKeyWakeTime);
+    if (localWakeTime) {
+        this._wakeTime = localWakeTime;
+        return localWakeTime;
+    }
+
+    // Last, if we still haven't been able to find a time that this domain rule
+    // should become active, calculate it now and store it persistantly.
+    localWakeTime = global.utils.now();
+    localWakeTime += constants.domainRuleWakeTimeMin;
+    localWakeTime += Math.floor(Math.random() * constants.domainRuleWakeTimeRange);
+    this._wakeTime = localWakeTime;
+    kango.storage.setItem(this._cacheKeyWakeTime, localWakeTime);
+    return localWakeTime;
+};
+
+/**
+ * Checks to see if the domain rule is asleep / hasn't become active yet.
+ *
+ * @return bool
+ *   Returns true if enough time has passed that the domain rule should become
+ *   active, and otherwise false.
+ */
+DomainRule.prototype.isAsleep = function () {
+
+    var wakeTime = this.getWakeTime();
+    return (wakeTime < global.utils.now());
 };
 
 /**
@@ -292,7 +370,7 @@ DomainRule = function (domainRule) {
 DomainRule.prototype.getLastReauthTime = function () {
 
     if (!this._lastReauthTime) {
-        this._lastReauthTime = kango.storage.getItem(this._cacheKey);
+        this._lastReauthTime = kango.storage.getItem(this._cacheKeyLastTime);
     }
 
     return this._lastReauthTime;
@@ -306,7 +384,7 @@ DomainRule.prototype.getLastReauthTime = function () {
  */
 DomainRule.prototype.setLastReauthTime = function (timestamp) {
     this._lastReauthTime = timestamp;
-    kango.storage.setItem(this._cacheKey, timestamp);
+    kango.storage.setItem(this._cacheKeyLastTime, timestamp);
 };
 
 /**
@@ -338,24 +416,38 @@ DomainRule.prototype.isMatchingUrl = function (url) {
  * @param string url
  *   A url as a string, such as "http://example.org/test.html"
  *
- * @return bool
- *   A boolean description of whether the user should reauth for the domain
+ * @return string|bool
+ *   Either a string describing why the user should not need to reauth
+ *   for the given url, or true indicating that the user should be reauthed.
+ *   If a string the string will be one of the following values:
+ *     - "no-match": Indicates that the user should not be reauthed because
+ *                   the given url does not match one of the domains that
+ *                   that should be reauthed
+ *     - "no-time":  Indicates that the user should not be reauthed because
+ *                   the user was already made to reauth on this domain
+ *                   recently
+ *     - "asleep":   Indicates that the rule would normally have been applied
+ *                   to log the user out, but that the rule is still asleep
  */
 DomainRule.prototype.shouldReauthForUrl = function (url) {
 
+    if (this.isAsleep()) {
+
+    }
+
     if (!this.isMatchingUrl(url)) {
-        return false;
+        return "no-match";
     }
 
     if (this.getLastReauthTime() === null) {
         return true;
     }
 
-    if (this.getLastReauthTime() + this.reauthTime < global.utils.now()) {
-        return true;
+    if (this.getLastReauthTime() + this._reauthTime < global.utils.now()) {
+        return (this.isAsleep()) ? "asleep" : true;
     }
 
-    return false;
+    return "no-time";
 };
 
 /**
@@ -363,7 +455,8 @@ DomainRule.prototype.shouldReauthForUrl = function (url) {
  * and the persistant store.
  */
 DomainRule.prototype.clearState = function () {
-    kango.storage.removeItem(this._cacheKey);
+    kango.storage.removeItem(this._cacheKeyLastTime);
+    kango.storage.reauthRs(this._cacheKeyWakeTime);
     this._lastReauthTime = null;
 };
 

@@ -4,7 +4,7 @@ var _now = global.utils.now,
     PageView,
     RecentTabHistory,
     TabsCollection,
-    sharedTabsCollectionInstance;
+    _sharedTabsCollectionInstance;
 
 /**
  * Constructor function, uses for creating objects that wrap up individal
@@ -14,6 +14,10 @@ var _now = global.utils.now,
  * The class also includes functionality for seeing if the page view
  * happened recently or before a given cuttof date (by default one)
  * minute ago
+ *
+ * @param int secTillExpiration
+ *   The amount of time, in seconds, that a url should stay in the history
+ *   before its removed / garbage collected
  */
 PageView = function (url, secTillExpiration) {
 
@@ -64,10 +68,11 @@ RecentTabHistory = function (secTillExpiration) {
 
 /**
  * Removes old page items that were entered before the set "seconds until
- * expiration" parameter.
+ * expiration" parameter. This will always leave at least one page (the current
+ * page) in the history of each tab.
  *
- * Returns an integer representation of the number of pages that were
- * removed / expired from the collection
+ * @return int
+ *   The number of pages that were removed / expired from the collection
  */
 RecentTabHistory.prototype.garbageCollect = function () {
 
@@ -86,7 +91,9 @@ RecentTabHistory.prototype.garbageCollect = function () {
     return count;
 };
 
-RecentTabHistory.prototype.addPage = function (url) {
+RecentTabHistory.prototype.addUrl = function (url) {
+
+    this.garbageCollect();
     this.pages.push(new PageView(url, this.secTillExpiration));
 };
 
@@ -95,11 +102,17 @@ RecentTabHistory.prototype.addPage = function (url) {
  * visited in the recent history of the tab. The given value should
  * be a valid domain (example.org) w/o protocol or path information (but
  * with port info, if needed).
+ *
+ * @param string domain
+ *   A domain to search for in the managed tab history
+ *
+ * @return bool
+ *   true if the domain is in the recent history of any of the managed tabs,
+ *   and otherwise false
  */
 RecentTabHistory.prototype.isDomainInHistory = function (domain) {
 
     var match = false;
-    this.garbageCollect();
 
     this.pages.forEach(function (aPage) {
 
@@ -116,7 +129,12 @@ RecentTabHistory.prototype.isDomainInHistory = function (domain) {
  * given url has been seen on this tab recently. The given value can be
  * any valid url.
  *
- * If the URL can't be parsed, false is automatically returned.
+ * @param string url
+ *   A full, absolute url being visited by a tab
+ *
+ * @return bool
+ *   false if the given URL can't be parsed, or the domain of the given URL
+ *   is not in the tab's recent history. Otherwise, true.
  */
 RecentTabHistory.prototype.isDomainForUrlInHistory = function (url) {
 
@@ -127,6 +145,10 @@ RecentTabHistory.prototype.isDomainForUrlInHistory = function (url) {
 /**
  * TabsCollection objects describe the entire collection of tabs showing
  * in the current browser process.
+ *
+ * @param int secTillExpiration
+ *   The amount of time, in seconds, that a url should stay in the history
+ *   before its removed / garbage collected
  */
 TabsCollection = function (secTillExpiration) {
 
@@ -139,7 +161,14 @@ TabsCollection = function (secTillExpiration) {
 
 /**
  * Removes a given tab from the collection of watched tabs. Returns a
- * boolean description of whether the requested tab was removed
+ * boolean description of whether the requested tab was removed.
+ *
+ * @param string|int tabId
+ *   The unique identifier of a tab being observered
+ *
+ * @return bool
+ *   true if the given tabId matches a tab being managed by the collection, and
+ *   so a tab was able to be removed. Otherwise, false.
  */
 TabsCollection.prototype.removeTab = function (tabId) {
 
@@ -162,6 +191,14 @@ TabsCollection.prototype.removeTab = function (tabId) {
  * Method returns a boolean description of whether a new RecentTabHistory
  * object was successfully added to the collection (ie either the given
  * tabId was *not* already associated with a RecentTabHistory object
+ *
+ * @param string|int tabId
+ *   The unique identifier of a tab being observered
+ *
+ * @return bool
+ *    Returns true if the given tabId does not match any tabs currently being
+ *    managed by the TabsCollection object, and so a new tab was added to the
+ *    collection. Otherwise, false.
  */
 TabsCollection.prototype.addTab = function (tabId) {
 
@@ -181,8 +218,17 @@ TabsCollection.prototype.addTab = function (tabId) {
  * Records that a new url is being visited on a given tab. Returns a
  * boolean description of whether the url was succesfully added to
  * a tab's history (ie whether the given tabId matched a managed tab)
+ *
+ * @param string url
+ *   A full, absolute url being visited by a tab
+ * @param string|int tabId
+ *   The unique identifier of a tab being observered
+ *
+ * @return bool
+ *    true if the tabId was found in the list of watched tabs, and the url
+ *    was added to that tab's history. In all other cases, false.
  */
-TabsCollection.prototype.addPageToTab = function (tabId, url) {
+TabsCollection.prototype.addUrlToTab = function (url, tabId) {
 
     if (!this.tabs[tabId]) {
 
@@ -190,7 +236,7 @@ TabsCollection.prototype.addPageToTab = function (tabId, url) {
 
     } else {
 
-        this.tabs[tabId].addPage(url);
+        this.tabs[tabId].addUrl(url);
         return true;
 
     }
@@ -204,8 +250,16 @@ TabsCollection.prototype.addPageToTab = function (tabId, url) {
  *
  * If we weren't able to extract a domain from the given URL for whatever
  * reason, null is returned.
+ *
+ * @param string url
+ *   A full, absolute url
+ *
+ * @return
+ *   An array of RecentTabHistory objects, each represeting the history of a
+ *   tab that has recently visited the domain serving the resource represented
+ *   by the provided url
  */
-TabsCollection.prototype.isDomainForUrlInHistory = function (url) {
+TabsCollection.prototype.tabHistoriesContainingDomainForUrl = function (url) {
 
     var extractedDomain = global.utils.extractDomain(url),
         aTabId,
@@ -236,11 +290,11 @@ ns.TabsCollection = TabsCollection;
  */
 ns.getInstance = function () {
 
-    if (!sharedTabsCollectionInstance) {
-        sharedTabsCollectionInstance = new TabsCollection();
+    if (!_sharedTabsCollectionInstance) {
+        _sharedTabsCollectionInstance = new TabsCollection();
     }
 
-    return sharedTabsCollectionInstance;
+    return _sharedTabsCollectionInstance;
 };
 
 });

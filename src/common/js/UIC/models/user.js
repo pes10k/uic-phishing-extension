@@ -203,6 +203,8 @@ ns.heartbeat = function (callback) {
         contentType: "json",
     },
     function (result) {
+        _checkInTime = _now();
+        kango.storage.setItem("checkInTime", _checkInTime);
         callback((result.status >= 200 && result.status < 300));
     });
 };

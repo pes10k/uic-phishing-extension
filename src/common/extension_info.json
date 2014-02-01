@@ -3,7 +3,7 @@
         "js/UIC.js",
         "js/UIC/pages/content.js"
     ],
-    "description": "Extension description",
+    "description": "Measures secure browsing behavior for a UIC study.",
     "creator": "UIC Bits Lab",
     "background_scripts": [
         "js/contrib/parse_uri.js",
@@ -15,14 +15,13 @@
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.3",
+    "version": "0.5",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "permissions": {
         "tabs": true,
         "content_scripts": ["http://*/*", "https://*/*"],
         "web_navigation": true,
-        "cookies": true,
         "xhr": ["http://*/*", "https://*/*"]
     }
 }

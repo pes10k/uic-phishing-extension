@@ -9,17 +9,23 @@ var constants = global.constants,
     // since this file will always be loaded first (since its platform
     // agnostic)
     cookiesModel = null,
-    tabManager = new models.tabs.TabsCollection(constants.pageHistoryTime),
-    _tabCouldReauth = {},
-    _now = global.utils.now;
+    _tabManager = new models.tabs.TabsCollection(constants.pageHistoryTime),
+    _now = global.utils.now,
+    _debug = function (msg, tab) {
+
+        var tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
+
+        if (constants.debug && console && console.log) {
+            kango.console.log(msg + tabDesc);
+        }
+    };
 
 /**
  * When ever a user opens a new tab, we need to add that tab to the tab
  * manager we use to track tab behavior
  */
 kango.browser.addEventListener(kango.browser.event.TAB_CREATED, function (event) {
-    tabManager.addTab(event.tabId);
-    _tabCouldReauth[event.tabId] = false;
+    _tabManager.addTab(event.tabId);
 });
 
 /**
@@ -27,23 +33,7 @@ kango.browser.addEventListener(kango.browser.event.TAB_CREATED, function (event)
  * so remove it from the collection of watched / tracked tabs.
  */
 kango.browser.addEventListener(kango.browser.event.TAB_REMOVED, function (event) {
-    tabManager.removeTab(event.tabId);
-    delete _tabCouldReauth[event.tabId];
-});
-
-/**
- * Whenever we're about to visit a new page, before the content has been loaded,
- * we check the recent tab history to see if this content has been visited
- * recently in any tab. We then keep track of whether this page has been visited
- * in recent history locally.
- */
-kango.browser.addEventListener(kango.browser.event.BEFORE_NAVIGATE, function (event) {
-
-    var tabId = event.target.getId(),
-        url = event.url;
-
-    _tabCouldReauth[tabId] = (tabManager.isDomainForUrlInHistory(url).length === 0);
-    tabManager.addPageToTab(tabId, url);
+    _tabManager.removeTab(event.tabId);
 });
 
 /**
@@ -86,35 +76,69 @@ kango.addMessageListener("check-for-reauth", function (event) {
 
     var tab = event.target,
         tabId = tab.getId(),
-        url = tab.getUrl();
+        url = tab.getUrl(),
+        data = event.data;
+
+    if (data && data.domReady) {
+        _tabManager.addUrlToTab(url, tabId);
+    }
+
+    _debug("received reauth request", tab);
 
     if (!currentUser.installId()) {
+        _debug("no reauth, extension is not installed", tab);
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
 
-    if (!_tabCouldReauth[tabId]) {
+    if (_tabManager.tabHistoriesContainingDomainForUrl(url).length > 1) {
+        _debug("no reauth, page was open in another tab", tab);
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
 
     if (!constants.debug && !currentUser.isExperimentGroup()) {
+        _debug("no reauth, user is not in experiment group", tab);
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
 
     if ((currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
+        _debug("no reauth, extension is still sleeping", tab);
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
 
-    domainModel.shouldReauthForUrl(url, function (shouldReauth) {
+    domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
 
-        if (!shouldReauth) {
+        if (!domainRule) {
+
+            switch (reason) {
+                case "asleep":
+                    _debug("no reauth, matching domain rule is asleep", tab);
+                    break;
+
+                case "no-rules":
+                    _debug("no reauth, could not find domain rules", tab);
+                    break;
+
+                case "no-match":
+                    _debug("no reauth, the current url is not a watched domain", tab);
+                    break;
+
+                case "no-time":
+                    _debug("no reauth, recently reauthed on this domain", tab);
+                    break;
+            }
+
             tab.dispatchMessage("response-for-reauth", false);
+
         } else {
-            shouldReauth.setLastReauthTime(_now());
-            tab.dispatchMessage("response-for-reauth", shouldReauth.title);
+
+            _debug("forcing reauth", tab);
+            domainRule.setLastReauthTime(_now());
+            tab.dispatchMessage("response-for-reauth", domainRule.title);
+
         }
     });
 });
@@ -126,9 +150,13 @@ kango.addMessageListener("check-for-reauth", function (event) {
  */
 kango.addMessageListener("password-entered", function (event) {
 
+    var tab = event.target;
+
     if (!currentUser.installId()) {
         return;
     }
+
+    _debug("password entered", tab);
 
     kango.xhr.send({
         method: "GET",
@@ -150,6 +178,8 @@ kango.addMessageListener("request-for-config", function (event) {
 
     var configuration = {},
         tab = event.target;
+
+    _debug("received request for config");
 
     configuration["installId"] = currentUser.installId();
     configuration["registrationTime"] = currentUser.registrationTime();

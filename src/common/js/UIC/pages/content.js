@@ -6,8 +6,23 @@
 
 __UIC(['pages', 'content'], function (global, ns) {
 
-var found_forms = [],
+var window_is_focused = true,
+    found_forms = [],
     host = window.location.host,
+    // Simple cross platform event listener
+    listen = function (eventName, elem, func) {
+        // W3C DOM
+        if (elem.addEventListener) {
+
+            elem.addEventListener(eventName, func, false);
+
+        } else if (elem.attachEvent) { // IE DOM
+
+            var r = elem.attachEvent("on" + eventName, func);
+            return r;
+
+        }
+    },
     report_password_typed = function () {
         kango.dispatchMessage("password-entered", {url: window.location.href});
     },
@@ -71,7 +86,7 @@ form_watcher.observe(document.body, {
 
 // Notify the backend that we'd like to know if we should force the user to
 // reauthenticate on the current page.
-kango.dispatchMessage("check-for-reauth");
+kango.dispatchMessage("check-for-reauth", {domReady: true});
 
 // Watch for a response to our above request for information about whether
 // we should force the user to reauth on the current page.  The response is
@@ -144,5 +159,24 @@ kango.addMessageListener("response-for-registration", function (event) {
     topBar.innerHTML = "You have not yet configured the UIC Survey Extension. Please configure the extension now.";
     document.body.insertBefore(topBar, document.body.firstChild);
 });
+
+// Next, register on-focus and on-blur events for the window, so that
+// we can only potentially log a user out if the window is blurred and
+// not being used.
+listen("blur", window, function () {
+    window_is_focused = false;
+});
+
+listen("focus", window, function () {
+    window_is_focused = true;
+});
+
+// Last, if the page is active, check every 60 seconds to see whether the
+// user should be logged out of the current page.
+setInterval(function () {
+    if (!window_is_focused) {
+        kango.dispatchMessage("check-for-reauth");
+    }
+}, 60000);
 
 });
