@@ -71,6 +71,7 @@ kango.addMessageListener("response-for-config", function (event) {
 });
 
 save_email = function () {
+    $submit_button.attr("disabled", "disabled");
     kango.dispatchMessage("request-set-email", $email_field.val());
     return false;
 };
