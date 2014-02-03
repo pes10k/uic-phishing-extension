@@ -303,7 +303,7 @@ DomainRule = function (domainRule) {
     // Stores, as seconds, the maximum amount of time that should pass
     // between logging a user out of a domain, once the domain
     // is out of sleep time.
-    this._reauthTime = domainRule.reauthTime || constants.defaultReauthTime;
+    this._reauthInterval = domainRule.reauthTime || constants.defaultReauthTime;
 
     // The date that this domain rule will become active, lazy loaded, either
     // from a value determined the first time this value is requested,
@@ -356,7 +356,7 @@ DomainRule.prototype.getWakeTime = function () {
 DomainRule.prototype.isAsleep = function () {
 
     var wakeTime = this.getWakeTime();
-    return (wakeTime < global.utils.now());
+    return (wakeTime > global.utils.now());
 };
 
 /**
@@ -431,10 +431,6 @@ DomainRule.prototype.isMatchingUrl = function (url) {
  */
 DomainRule.prototype.shouldReauthForUrl = function (url) {
 
-    if (this.isAsleep()) {
-
-    }
-
     if (!this.isMatchingUrl(url)) {
         return "no-match";
     }
@@ -443,7 +439,7 @@ DomainRule.prototype.shouldReauthForUrl = function (url) {
         return true;
     }
 
-    if (this.getLastReauthTime() + this._reauthTime < global.utils.now()) {
+    if (this.getLastReauthTime() + this._reauthInterval < global.utils.now()) {
         return (this.isAsleep()) ? "asleep" : true;
     }
 
