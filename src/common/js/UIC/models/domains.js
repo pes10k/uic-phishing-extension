@@ -431,18 +431,35 @@ DomainRule.prototype.isMatchingUrl = function (url) {
  */
 DomainRule.prototype.shouldReauthForUrl = function (url) {
 
+    // If the given URL doesn't match the domain this rule affects,
+    // then the domain rule doesn't apply
     if (!this.isMatchingUrl(url)) {
         return "no-match";
     }
 
+    // If the current domain rule is asleep, then we know the domain rule
+    // doe not apply
+    if (this.isAsleep()) {
+        return "asleep";
+    }
+
+    // If the domain rule matches the domain of the current URL and the domain
+    // rule is not alseep, then we know that the domain rule should be applied
     if (this.getLastReauthTime() === null) {
         return true;
     }
 
+    // If the domain rule has been appled (ie the above condition fails),
+    // but enough time has passed since the domain rule fired previously
+    // that the domain rule should be applied again, then we're done
     if (this.getLastReauthTime() + this._reauthInterval < global.utils.now()) {
-        return (this.isAsleep()) ? "asleep" : true;
+        return true;
     }
 
+    // Otherwise, if the url belongs to the watched domain and the domain rule
+    // is not asleep, and the domain rule has fired before, but enough time
+    // hasn't passed for it to fire again, then we don't act, since we need
+    // to wait for more time
     return "no-time";
 };
 
