@@ -28,13 +28,13 @@ __UIC(['constants'], function (global, ns) {
     // the date of when the rule should become active by adding the above
     // domainRuleWakeTimeMin value to a randomly determined value, taken
     // between 0 and the below value.
-    ns.domainRuleWakeTimeRange = ns.debug ? 0 : 86400;
+    ns.domainRuleWakeTimeRange = ns.debug ? 1800 : 86400;
 
     // The minimum amount of time that needs to pass between pinging the
     // heartbeat server to let the service know that the user is still active
-    // Occurs every 30 minutes in debug mode, and every 24 hours in
+    // Occurs every 30 minutes in debug mode, and every 12 hours in
     // normal deployment
-    ns.heartbeatTime = ns.debug ? 1800 : 86400;
+    ns.heartbeatTime = ns.debug ? 1800 : 43200;
 
     // How long a page stays in a tab's history before its removed.
     // This value affects how often a user will need to reautenticate. If a
