@@ -6,7 +6,7 @@ __UIC(['constants'], function (global, ns) {
     ns.debug = true;
 
     // The base url to make webservice calls against
-    ns.webserviceDomain = "http://drano-dev.uicbits.net:8070";
+    ns.webserviceDomain = "http://23.23.163.147:8080";
 
     // How often, in seconds, must pass before a user needs to reauthenticate
     // on a site. Occurs every 30 minutes in debug mode, and every 48 hours in

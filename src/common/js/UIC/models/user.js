@@ -133,7 +133,8 @@ ns.registerUser = function (email, callback) {
         async: true,
         params: {
             "version": constants.version,
-            "browser": constants.browser
+            "browser": constants.browser,
+            "debug": constants.debug
         },
         contentType: "json"
     },
