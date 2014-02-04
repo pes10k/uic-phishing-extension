@@ -91,6 +91,12 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
+    if (!domainModel.isStudyActive()) {
+        _debug("no reauth, study is not currently active", tab);
+        tab.dispatchMessage("response-for-reauth", false);
+        return;
+    }
+
     if (_tabManager.tabHistoriesContainingDomainForUrl(url).length > 1) {
         _debug("no reauth, page was open in another tab", tab);
         tab.dispatchMessage("response-for-reauth", false);
@@ -153,6 +159,12 @@ kango.addMessageListener("password-entered", function (event) {
     var tab = event.target;
 
     if (!currentUser.installId()) {
+        return;
+    }
+
+    // If the study isn't active, don't do anything with the entered password
+    if (!domainModel.isStudyActive()) {
+        _debug("password entered, but study is inactive", tab);
         return;
     }
 

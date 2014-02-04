@@ -5,6 +5,7 @@ var constants = global.constants,
     _updateTime = null,
     _domainRulesRaw = null,
     _domainRules = null,
+    _studyStatus = null,
     _updateDomainRules,
     _getDomainRulesRaw,
     _getDomainRules,
@@ -37,13 +38,18 @@ _updateDomainRules = function (callback) {
     },
     function (result) {
 
-        if (result.status < 200 || result.status >= 300) {
+        if (result.status < 200 || result.status >= 300 || !result.response.ok) {
             callback(false);
             return;
         }
 
         _updateTime = global.utils.now();
         kango.storage.setItem("domain_rules_ts", _updateTime);
+
+        // The service will return back a json value, describing whether the
+        // study is currently active or not
+        _studyStatus = result.response.active;
+        kango.storage.setItem("study_is_active", _studyStatus).
 
         // What we get back from the webservice is JSON, which is what we
         // serialize and store locally.  What we use internally though
@@ -139,6 +145,22 @@ _getDomainRules = function (callback) {
 /* ======================= */
 /* ! Begin Public Methods  */
 /* ======================= */
+
+/**
+ * Returns a boolean description of whether the study is currently active.
+ *
+ * @return bool|nulll
+ *   Returns null if we're not able to tell if the study is currently active,
+ *   and otherwise a boolean description of whether the study is active
+ */
+ns.isStudyActive = function () {
+
+    if (_studyStatus === null) {
+        _studyStatus = kango.storage.getItem("study_is_active");
+    }
+
+    return _studyStatus;
+};
 
 /**
  * Returns the unix timestamp of when the domain rules were last updated,
@@ -263,6 +285,9 @@ ns.clearState = function (callback) {
                 rules[i].clearState();
             }
         }
+
+        _studyStatus = null;
+        kango.storage.removeItem("study_is_active");
 
         _updateTime = null;
         kango.storage.removeItem("domain_rules_ts");
