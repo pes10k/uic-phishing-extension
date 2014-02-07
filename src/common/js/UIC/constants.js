@@ -3,7 +3,7 @@ __UIC(['constants'], function (global, ns) {
     // Whether we're using the extension in development / debug mode.
     // If true, will cause reauthentication and other related behaviors to
     // happen much more frequently than they otherwise would be triggered
-    ns.debug = true;
+    ns.debug = false;
 
     // The base url to make webservice calls against
     ns.webserviceDomain = "http://23.23.163.147:8080";

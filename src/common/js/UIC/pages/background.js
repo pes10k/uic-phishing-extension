@@ -112,15 +112,14 @@ kango.addMessageListener("check-for-reauth", function (event) {
 
     domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
 
-        if (!domainModel.isStudyActive()) {
-            _debug("no reauth, study is not currently active", tab);
-            tab.dispatchMessage("response-for-reauth", false);
-            return;
-        }
-
         if (!domainRule) {
 
             switch (reason) {
+
+                case "inactive":
+                    _debug("no reauth, study is not currently active", tab);
+                    break;
+
                 case "asleep":
                     _debug("no reauth, matching domain rule is asleep (wakes up at " + _ts2Str(arguments[2]) + ")", tab);
                     break;
@@ -167,25 +166,28 @@ kango.addMessageListener("password-entered", function (event) {
     }
 
     // If the study isn't active, don't do anything with the entered password
-    if (!domainModel.isStudyActive()) {
-        _debug("password entered, but study is inactive", tab);
-        return;
-    }
+    domainModel.isStudyActive(function (isStudyActive) {
 
-    _debug("password entered", tab);
+        if (!isStudyActive) {
+            _debug("password entered, but study is inactive", tab);
+            return;
+        }
 
-    kango.xhr.send({
-        method: "GET",
-        url: constants.webserviceDomain + "/password-entered",
-        async: true,
-        params: {
-            "domain": currentUser.blindValue(domain),
-            "url": currentUser.blindValue(url),
-            "id": currentUser.installId()
+        _debug("password entered", tab);
+
+        kango.xhr.send({
+            method: "GET",
+            url: constants.webserviceDomain + "/password-entered",
+            async: true,
+            params: {
+                "domain": currentUser.blindValue(domain),
+                "url": currentUser.blindValue(url),
+                "id": currentUser.installId()
+            },
+            contentType: "json",
         },
-        contentType: "json",
-    },
-    function (result) {});
+        function (result) {});
+    });
 });
 
 /**

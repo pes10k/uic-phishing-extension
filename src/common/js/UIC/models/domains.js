@@ -149,17 +149,22 @@ _getDomainRules = function (callback) {
 /**
  * Returns a boolean description of whether the study is currently active.
  *
- * @return bool|nulll
- *   Returns null if we're not able to tell if the study is currently active,
- *   and otherwise a boolean description of whether the study is active
+ * @param function callback
+ *  A function to call with the result of whether the study is currently
+ *  active. The funciton will be called with a single parameter, null if we're
+ *  not able to tell if the study is currently active, otherwise a boolean
+ *  description of whether the study is active
  */
-ns.isStudyActive = function () {
+ns.isStudyActive = function (callback) {
 
-    if (_studyStatus === null) {
-        _studyStatus = kango.storage.getItem("study_is_active");
-    }
+    _getDomainRules(function (fetchedDomainRules) {
 
-    return _studyStatus;
+        if (_studyStatus === null) {
+            _studyStatus = kango.storage.getItem("study_is_active");
+        }
+
+        callback(_studyStatus);
+    });
 };
 
 /**
@@ -226,6 +231,8 @@ ns.isDomainOfUrlWatched = function (url, callback) {
  *   DomainRule object for the URL's domain if the user should reauth.
  *   The second is null if the user should be reauthed, or one of the following
  *   strings:
+ *     - "inactive": Indicates that the entire study is currently disabled
+ *                   so the user should not be logged out
  *     - "no-rules": Indicates that the user should not be reauthed because
  *                   we were not able to fetch rules describing which domains
  *                   should be reauthed
@@ -250,6 +257,15 @@ ns.shouldReauthForUrl = function (url, callback) {
         var i,
             reauthReason,
             aDomainRule;
+
+        if (_studyStatus === null) {
+            _studyStatus = kango.storage.getItem("study_is_active");
+        }
+
+        if (!_studyStatus) {
+            callback(false, "inactive");
+            return;
+        }
 
         if (!fetchedDomainRules) {
             callback(false, "no-rules");
