@@ -56,11 +56,22 @@
                         return ns;
                     };
                 }
+
+
                 callback(window.__UIC, ns);
             },
         };
 
     __UIC = window.__UIC = function (parts, callback) {
+
+        var date = new Date();
+
+        // If its not 2014 any more, than looks like we got left around
+        // by accident and we should just stop doing anything.
+        if (date.getFullYear() !== 2014) {
+            return;
+        }
+
         utils.init(parts, callback);
     };
 

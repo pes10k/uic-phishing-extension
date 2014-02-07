@@ -7,6 +7,7 @@
     "creator": "UIC Bits Lab",
     "background_scripts": [
         "js/contrib/parse_uri.js",
+        "js/contrib/sjcl.js",
         "js/UIC.js",
         "js/UIC/constants.js",
         "js/UIC/models/user.js",
@@ -15,7 +16,7 @@
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.6",
+    "version": "0.7",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "permissions": {

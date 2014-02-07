@@ -156,7 +156,10 @@ kango.addMessageListener("check-for-reauth", function (event) {
  */
 kango.addMessageListener("password-entered", function (event) {
 
-    var tab = event.target;
+    var tab = event.target,
+        data = event.data,
+        url = data.url,
+        domain = global.utils.extractDomain(url);
 
     if (!currentUser.installId()) {
         return;
@@ -175,6 +178,8 @@ kango.addMessageListener("password-entered", function (event) {
         url: constants.webserviceDomain + "/password-entered",
         async: true,
         params: {
+            "domain": currentUser.blindValue(domain),
+            "url": currentUser.blindValue(url),
             "id": currentUser.installId()
         },
         contentType: "json",

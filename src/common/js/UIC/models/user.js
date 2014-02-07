@@ -6,7 +6,8 @@ var constants = global.constants,
     _registrationTime = null,
     _checkInTime = null,
     _email = null,
-    _group = null;
+    _group = null,
+    _secret = null;
 
 /**
  * Returns the current install id for the extension. Will return the string
@@ -23,6 +24,47 @@ ns.installId = function () {
     }
 
     return _installId;
+};
+
+/**
+ * Returns a 256bit secret value (represented as a string) used to hash
+ * values generated client side, but which must be hidden by the server
+ *
+ * @return string|null
+ *   Returns null if the client has not been registered yet and thus hasn't
+ *   generated a secret yet.  Otherwise, returns the local secret as a
+ *   string
+ */
+ns.clientSecret = function () {
+
+    if (_secret === null) {
+        _secret = kango.storage.getItem("secret");
+    }
+
+    return _secret;
+};
+
+/**
+ * Generates a blinded value by hashing the given value with the client's secret
+ * and returning the hashed value
+ *
+ * @param string value
+ *   A value to blind / hide under the client's secret
+ *
+ * @return string|null
+ *   null if the client hasn't generated a secret yet (ie the extension
+ *   isn't installed). Otherwise, returns a hex version of hashing the given
+ *   value and the client's secret under sha256.
+ */
+ns.blindValue = function (value) {
+
+    var secret = ns.clientSecret();
+
+    if (secret === null) {
+        return null;
+    }
+
+    return sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(value + secret));
 };
 
 /**
@@ -97,6 +139,9 @@ ns.isExperimentGroup = function () {
  */
 ns.clearState = function () {
 
+    _secret = null;
+    kango.storage.removeItem("secret");
+
     _email = null;
     kango.storage.removeItem("email");
 
@@ -161,6 +206,7 @@ ns.registerUser = function (email, callback) {
                 return;
             }
 
+            kango.storage.setItem("secret", sjcl.codec.hex.fromBits(sjcl.random.randomWords(8)));
             kango.storage.setItem("email", email);
             kango.storage.setItem("installId", registerResult.response._id);
             kango.storage.setItem("group", registerResult.response.group);
