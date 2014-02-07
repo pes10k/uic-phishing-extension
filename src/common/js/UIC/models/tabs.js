@@ -224,22 +224,17 @@ TabsCollection.prototype.addTab = function (tabId) {
  * @param string|int tabId
  *   The unique identifier of a tab being observered
  *
- * @return bool
- *    true if the tabId was found in the list of watched tabs, and the url
- *    was added to that tab's history. In all other cases, false.
+ * @return RecentTabHistory
+ *   A reference to the tab history object that tracks history information
+ *   for the tab that the page was added to.
  */
 TabsCollection.prototype.addUrlToTab = function (url, tabId) {
 
     if (!this.tabs[tabId]) {
-
-        return false;
-
-    } else {
-
-        this.tabs[tabId].addUrl(url);
-        return true;
-
+        this.tabs[tabId] = new RecentTabHistory(this.secTillExpiration);
     }
+
+    this.tabs[tabId].addUrl(url);
 };
 
 /**

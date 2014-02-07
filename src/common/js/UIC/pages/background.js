@@ -11,6 +11,7 @@ var constants = global.constants,
     cookiesModel = null,
     _tabManager = new models.tabs.TabsCollection(constants.pageHistoryTime),
     _now = global.utils.now,
+    _ts2Str = global.utils.timestampToString,
     _debug = function (msg, tab) {
 
         var tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
@@ -91,12 +92,6 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
-    if (!domainModel.isStudyActive()) {
-        _debug("no reauth, study is not currently active", tab);
-        tab.dispatchMessage("response-for-reauth", false);
-        return;
-    }
-
     if (_tabManager.tabHistoriesContainingDomainForUrl(url).length > 1) {
         _debug("no reauth, page was open in another tab", tab);
         tab.dispatchMessage("response-for-reauth", false);
@@ -110,18 +105,24 @@ kango.addMessageListener("check-for-reauth", function (event) {
     }
 
     if ((currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
-        _debug("no reauth, extension is still sleeping", tab);
+        _debug("no reauth, extension is still sleeping (wakes up at " + _ts2Str(currentUser.registrationTime() + constants.extensionSleepTime) + ")", tab);
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
 
     domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
 
+        if (!domainModel.isStudyActive()) {
+            _debug("no reauth, study is not currently active", tab);
+            tab.dispatchMessage("response-for-reauth", false);
+            return;
+        }
+
         if (!domainRule) {
 
             switch (reason) {
                 case "asleep":
-                    _debug("no reauth, matching domain rule is asleep", tab);
+                    _debug("no reauth, matching domain rule is asleep (wakes up at " + _ts2Str(arguments[2]) + ")", tab);
                     break;
 
                 case "no-rules":
@@ -133,7 +134,7 @@ kango.addMessageListener("check-for-reauth", function (event) {
                     break;
 
                 case "no-time":
-                    _debug("no reauth, recently reauthed on this domain", tab);
+                    _debug("no reauth, recently reauthed on this domain (next reauth at " + _ts2Str(arguments[2]) + ")", tab);
                     break;
             }
 
@@ -194,7 +195,8 @@ kango.addMessageListener("password-entered", function (event) {
 kango.addMessageListener("request-for-config", function (event) {
 
     var configuration = {},
-        tab = event.target;
+        tab = event.target,
+        key;
 
     _debug("received request for config");
 
@@ -202,6 +204,15 @@ kango.addMessageListener("request-for-config", function (event) {
     configuration["registrationTime"] = currentUser.registrationTime();
     configuration["checkInTime"] = currentUser.checkInTime();
     configuration["email"] = currentUser.email();
+
+    if (currentUser.installId()) {
+        _debug("found config information for extension.");
+        for (key in configuration) {
+            _debug(" - " + key + ": " + configuration[key]);
+        }
+    } else {
+        _debug("no config info for extension found.");
+    }
 
     tab.dispatchMessage("response-for-config", configuration);
 });

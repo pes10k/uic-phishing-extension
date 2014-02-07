@@ -49,7 +49,7 @@ _updateDomainRules = function (callback) {
         // The service will return back a json value, describing whether the
         // study is currently active or not
         _studyStatus = result.response.active;
-        kango.storage.setItem("study_is_active", _studyStatus).
+        kango.storage.setItem("study_is_active", _studyStatus);
 
         // What we get back from the webservice is JSON, which is what we
         // serialize and store locally.  What we use internally though
@@ -234,17 +234,22 @@ ns.isDomainOfUrlWatched = function (url, callback) {
  *                   that should be reauthed
  *     - "no-time":  Indicates that the user should not be reauthed because
  *                   the user was already made to reauth on this domain
- *                   recently
+ *                   recently.  In this case, a third argument will be passed
+ *                   to the callback, the next date that the domain will be
+ *                   valid to be reauthed
  *     - "asleep":   Indicates that a domain rule matches and that normally
  *                   the user would be logged out, but that the matching
- *                   domain rule is asleep
+ *                   domain rule is asleep.  In this case, a third argument
+ *                   will be passed to the callback, the date that the domain
+ *                   rule wakes up
  */
 ns.shouldReauthForUrl = function (url, callback) {
 
     _getDomainRules(function (fetchedDomainRules) {
 
         var i,
-            reauthRs;
+            reauthReason,
+            aDomainRule;
 
         if (!fetchedDomainRules) {
             callback(false, "no-rules");
@@ -252,12 +257,18 @@ ns.shouldReauthForUrl = function (url, callback) {
         }
 
         for (i = 0; i < fetchedDomainRules.length; i++) {
-            reauthRs = fetchedDomainRules[i].shouldReauthForUrl(url);
-            if (reauthRs === true) {
-                callback(fetchedDomainRules[i]);
+
+            aDomainRule = fetchedDomainRules[i];
+            reauthReason = aDomainRule.shouldReauthForUrl(url);
+
+            if (reauthReason === true) {
+                callback(aDomainRule);
                 return;
-            } else if (reauthRs === "no-time" || reauthRs === "asleep") {
-                callback(false, reauthRs);
+            } else if (reauthReason === "no-time") {
+                callback(false, reauthReason, aDomainRule.getNextReauthTime());
+                return;
+            } else if (reauthReason === "asleep") {
+                callback(false, reauthReason, aDomainRule.getWakeTime());
                 return;
             }
         }
@@ -435,6 +446,24 @@ DomainRule.prototype.isMatchingUrl = function (url) {
 };
 
 /**
+ * Returns a unix timestamp of the next time the domain watched by this
+ * rule is valid to be reauthorized
+ *
+ * @return int|null
+ *   Returns null if we're for any reason not able to figure out when
+ *   this rule should be reauthorized.  Otherwise, an interger
+ *   unix timestamp
+ */
+DomainRule.prototype.getNextReauthTime = function () {
+
+    if (this.getLastReauthTime() === null) {
+        return null;
+    }
+
+    return this.getLastReauthTime() + this._reauthInterval;
+};
+
+/**
  * Returns a boolean description of whether the user should be reauthed for the
  * domain in the given URL.
  *
@@ -477,7 +506,7 @@ DomainRule.prototype.shouldReauthForUrl = function (url) {
     // If the domain rule has been appled (ie the above condition fails),
     // but enough time has passed since the domain rule fired previously
     // that the domain rule should be applied again, then we're done
-    if (this.getLastReauthTime() + this._reauthInterval < global.utils.now()) {
+    if (this.getNextReauthTime() < global.utils.now()) {
         return true;
     }
 

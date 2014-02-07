@@ -46,6 +46,22 @@
                 return current_leaf;
             },
 
+            /**
+             * Formats a unix timestamp into a human readable date string,
+             * using the currnet locals settings.
+             *
+             * @param int timestamp
+             *   A unix timestamp, with second level granularity.
+             *
+             * @return string
+             *   A human readable version of the same date
+             */
+            timestampToString: function (timestamp) {
+
+                var aDate = new Date(timestamp * 1000);
+                return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString();
+            },
+
             init: function (parts, callback) {
 
                 var ns = null;

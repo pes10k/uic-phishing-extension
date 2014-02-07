@@ -3,12 +3,17 @@ __UIC(["pages", "config"], function (global, ns) {
 KangoAPI.onReady(function () {
 
 var $status_section = $("#status").hide(),
+    last_msg = null,
     display_status_msg = function (msg) {
         $status_section.text(msg);
         $status_section.fadeIn();
+        last_msg = msg;
         window.setTimeout(function () {
-            $status_section.fadeOut();
-            $status_section.text("");
+            // Don't hide the feedback message if we've set a new feedback
+            // message since this timeout function was registered.
+            if (last_msg === msg) {
+                $status_section.fadeOut();
+            }
         }, 5000);
     },
     $email_field = $("#email"),
@@ -21,15 +26,7 @@ var $status_section = $("#status").hide(),
     $submit_button = $("#submit"),
     $reset_button = $("#reset"),
     save_email,
-    update_fields,
-    format_date;
-
-format_date = function (a_date) {
-    var cal = [a_date.getUTCMonth() + 1,
-               a_date.getDate(),
-               a_date.getFullYear()].join("/");
-    return cal + " "  + a_date.toLocaleTimeString();
-};
+    update_fields;
 
 update_fields = function () {
     kango.dispatchMessage("request-for-config");
@@ -62,15 +59,16 @@ kango.addMessageListener("response-for-config", function (event) {
     }
 
     if (start_date) {
-        $entrollment_date_field.val(format_date(new Date(start_date * 1000)));
+        $entrollment_date_field.val(global.utils.timestampToString(start_date));
     }
 
     if (check_in_date) {
-        $check_in_date_field.val(format_date(new Date(check_in_date * 1000)));
+        $check_in_date_field.val(global.utils.timestampToString(check_in_date));
     }
 });
 
 save_email = function () {
+    display_status_msg("Registering extension with the recording server...");
     $submit_button.attr("disabled", "disabled");
     kango.dispatchMessage("request-set-email", $email_field.val());
     return false;
@@ -78,7 +76,9 @@ save_email = function () {
 
 kango.addMessageListener("response-set-email", function (wasSuccess) {
     if (!wasSuccess.data) {
-        display_status_msg("There was an error registering your extension with the recording server.  Please try again later.");
+        display_status_msg("There was an error registering your extension with the recording server.  Please try again later or contact psnyde2@uic.edu.");
+    } else {
+        display_status_msg("Successfully registered extension with the recording server.")
     }
     update_fields();
 });
