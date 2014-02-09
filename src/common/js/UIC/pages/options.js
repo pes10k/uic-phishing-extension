@@ -56,14 +56,12 @@ kango.addMessageListener("response-for-config", function (event) {
 
     if (config.installId) {
         $identifier_field.val(config.installId);
-    }
-
-    if (start_date) {
         $entrollment_date_field.val(global.utils.timestampToString(start_date));
-    }
-
-    if (check_in_date) {
         $check_in_date_field.val(global.utils.timestampToString(check_in_date));
+    } else {
+        $identifier_field.val("");
+        $entrollment_date_field.val("");
+        $check_in_date_field.val("");
     }
 });
 

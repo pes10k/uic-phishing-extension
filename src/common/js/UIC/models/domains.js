@@ -336,7 +336,6 @@ ns.clearState = function (callback) {
 DomainRule = function (domainRule) {
     this.title = domainRule.title;
     this.domain = domainRule.domain;
-    this.cookies = domainRule.cookies;
 
     // Keeps track of when the last time the user was logged out of this domain.
     // The true value is stored in local storage, but also provide a local

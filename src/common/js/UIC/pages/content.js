@@ -94,7 +94,8 @@ kango.dispatchMessage("check-for-reauth", {domReady: true});
 // the title of the domain rule that has matched.
 kango.addMessageListener("response-for-reauth", function (event) {
 
-    var signoutForm;
+    var signoutForm,
+        signoutLink;
 
     if (!event.data) {
         return;
@@ -121,6 +122,20 @@ kango.addMessageListener("response-for-reauth", function (event) {
             signoutForm = document.getElementById("signout-form");
             if (signoutForm) {
                 signoutForm.submit();
+            }
+            break;
+
+        case "Reddit":
+            signoutForm = document.getElementById("form.logout");
+            if (signoutForm) {
+                signoutForm.submit();
+            }
+            break;
+
+        case "Yahoo Mail":
+            signoutLink = document.querySelector("a.yucs-signout");
+            if (signoutLink) {
+                signoutLink.click();
             }
             break;
     }
