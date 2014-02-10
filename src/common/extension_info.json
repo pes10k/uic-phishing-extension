@@ -16,7 +16,7 @@
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.8.1",
+    "version": "0.9",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "permissions": {

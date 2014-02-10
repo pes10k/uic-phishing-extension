@@ -126,7 +126,7 @@ kango.addMessageListener("response-for-reauth", function (event) {
             break;
 
         case "Reddit":
-            signoutForm = document.getElementById("form.logout");
+            signoutForm = document.querySelector("form.logout");
             if (signoutForm) {
                 signoutForm.submit();
             }
