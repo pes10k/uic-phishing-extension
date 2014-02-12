@@ -18,15 +18,20 @@ var window_is_focused = true,
     },
     watch_form = function (form_node) {
         var password_input = form_node.querySelector("input[type='password']"),
-            has_touched_password = false;
+            password_entry_reported = false,
+            password_field_has_changed = false;
 
         if (password_input) {
+
+            password_input.addEventListener('change', function (e) {
+                password_field_has_changed = true;
+            });
 
             // Register password entry if the user hits enter in the password
             // field
             password_input.addEventListener('keyup', function (e) {
-                if (password_input.value && e.keyCode == 13 && !has_touched_password) {
-                    has_touched_password = true;
+                if (password_input.value && password_field_has_changed && e.keyCode == 13 && !password_entry_reported) {
+                    password_entry_reported = true;
                     report_password_typed(password_input);
                 }
             }, false);
@@ -34,8 +39,8 @@ var window_is_focused = true,
             // Also register password entry if the user blurs out of the
             // password field
             password_input.addEventListener('blur', function (e) {
-                if (password_input.value && !has_touched_password) {
-                    has_touched_password = true;
+                if (password_input.value && password_field_has_changed && !password_entry_reported) {
+                    password_entry_reported = true;
                     report_password_typed(password_input);
                 }
             }, false);
