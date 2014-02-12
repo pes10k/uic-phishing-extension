@@ -9,6 +9,9 @@
         "js/contrib/parse_uri.js",
         "js/contrib/sjcl.js",
         "js/UIC.js",
+        "js/UIC/lib/queue.js",
+        "js/UIC/lib/nist.js",
+        "js/UIC/lib/histogram.js",
         "js/UIC/constants.js",
         "js/UIC/models/user.js",
         "js/UIC/models/tabs.js",
@@ -16,7 +19,7 @@
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.9",
+    "version": "0.10.8",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "permissions": {

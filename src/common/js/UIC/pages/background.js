@@ -3,12 +3,12 @@ __UIC(['pages', 'background'], function (global, ns) {
 var constants = global.constants,
     models = global.models,
     currentUser = models.user.getInstance(),
-    domainModel = models.domains.getInstance(),
-    // Because of the order that Kango loads platform specific libraries,
-    // we lazy load the cookie model when we need it, instead of right away,
-    // since this file will always be loaded first (since its platform
-    // agnostic)
-    cookiesModel = null,
+    _domainModel = models.domains.getInstance(),
+    // Keep track of the previous UIC OAuth2 url we're directing to.
+    // If there is an entry in this object for a given tab id,
+    // it means that the _previous page_ in this tab had a UIC OAuth2
+    // url on it
+    _prevRedirectUrls = {},
     _tabManager = new models.tabs.TabsCollection(constants.pageHistoryTime),
     _now = global.utils.now,
     _ts2Str = global.utils.timestampToString,
@@ -34,6 +34,10 @@ kango.browser.addEventListener(kango.browser.event.TAB_CREATED, function (event)
  * so remove it from the collection of watched / tracked tabs.
  */
 kango.browser.addEventListener(kango.browser.event.TAB_REMOVED, function (event) {
+
+    if (_prevRedirectUrls[event.tabId]) {
+        delete _prevRedirectUrls[event.tabId];
+    }
     _tabManager.removeTab(event.tabId);
 });
 
@@ -110,31 +114,31 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
-    domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
+    _domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
 
         if (!domainRule) {
 
             switch (reason) {
 
-                case "inactive":
-                    _debug("no reauth, study is not currently active", tab);
-                    break;
+            case "inactive":
+                _debug("no reauth, study is not currently active", tab);
+                break;
 
-                case "asleep":
-                    _debug("no reauth, matching domain rule is asleep (wakes up at " + _ts2Str(arguments[2]) + ")", tab);
-                    break;
+            case "asleep":
+                _debug("no reauth, matching domain rule is asleep (wakes up at " + _ts2Str(arguments[2]) + ")", tab);
+                break;
 
-                case "no-rules":
-                    _debug("no reauth, could not find domain rules", tab);
-                    break;
+            case "no-rules":
+                _debug("no reauth, could not find domain rules", tab);
+                break;
 
-                case "no-match":
-                    _debug("no reauth, the current url is not a watched domain", tab);
-                    break;
+            case "no-match":
+                _debug("no reauth, the current url is not a watched domain", tab);
+                break;
 
-                case "no-time":
-                    _debug("no reauth, recently reauthed on this domain (next reauth at " + _ts2Str(arguments[2]) + ")", tab);
-                    break;
+            case "no-time":
+                _debug("no reauth, recently reauthed on this domain (next reauth at " + _ts2Str(arguments[2]) + ")", tab);
+                break;
             }
 
             tab.dispatchMessage("response-for-reauth", false);
@@ -142,11 +146,32 @@ kango.addMessageListener("check-for-reauth", function (event) {
         } else {
 
             _debug("forcing reauth", tab);
-            domainRule.setLastReauthTime(_now());
-            tab.dispatchMessage("response-for-reauth", domainRule.title);
-
+            domainRule.recordReauth(function (isSuccessful) {
+                _debug("completed reauth, status: " + (isSuccessful ? "successful" : "failure"), tab);
+                tab.dispatchMessage("response-for-reauth", domainRule.code);
+            });
         }
     });
+});
+
+/**
+ * Register whether the current page has a UIC OAuth2 style redirection domain
+ * on it.  Note we always keep track of the current page and the previous
+ * page in this structure.
+ */
+kango.addMessageListener("found-redirect-url", function (event) {
+
+    var tab = event.target,
+        data = event.data,
+        tabId = tab.getId(),
+        currentUrl = data.currentUrl,
+        redirectUrl = data.redirectUrl;
+
+    if (!_prevRedirectUrls[tabId]) {
+        _prevRedirectUrls[tabId] = new global.lib.queue.LimitedQueue(2);
+    }
+
+    _prevRedirectUrls[tabId].push(redirectUrl);
 });
 
 /**
@@ -158,20 +183,41 @@ kango.addMessageListener("password-entered", function (event) {
 
     var tab = event.target,
         data = event.data,
-        url = data.url,
-        domain = global.utils.extractDomain(url);
+        tabId = tab.getId(),
+        password = data.password,
+        url = null,
+        redirectUrlQueue = _prevRedirectUrls[tabId],
+        installId = currentUser.installId();
 
-    if (!currentUser.installId()) {
+    if (!installId) {
         return;
     }
 
+    // We need to check for a single special case when determining what
+    // domain / url, etc. we thing the entered password is for.
+    // If 1) the current page we're on is the UIC OAuth2 redirection flow,
+    // and 2 the previous page the current tab visited had a redirection
+    // URL on it, use that URL (the redirection url) instead of the tab's
+    // current URL
+
+    if (data.url.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0 &&
+        redirectUrlQueue && redirectUrlQueue.length === 2 && redirectUrlQueue.peek(-1)) {
+        url = redirectUrlQueue.peek(-1);
+    } else {
+        url = data.url;
+    }
+
     // If the study isn't active, don't do anything with the entered password
-    domainModel.isStudyActive(function (isStudyActive) {
+    _domainModel.isStudyActive(function (isStudyActive) {
+
+        var domain = null;
 
         if (!isStudyActive) {
             _debug("password entered, but study is inactive", tab);
             return;
         }
+
+        domain = global.utils.extractDomain(url);
 
         _debug("password entered", tab);
 
@@ -180,11 +226,13 @@ kango.addMessageListener("password-entered", function (event) {
             url: constants.webserviceDomain + "/password-entered",
             async: true,
             params: {
-                "domain": currentUser.blindValue(domain),
-                "url": currentUser.blindValue(url),
-                "id": currentUser.installId()
+                "domain": domain,
+                "url": url,
+                "pw_hash": currentUser.blindValue(password),
+                "pw_strength": global.lib.nist.nistEntropy(password),
+                "id": installId
             },
-            contentType: "json",
+            contentType: "json"
         },
         function (result) {});
     });
@@ -202,10 +250,10 @@ kango.addMessageListener("request-for-config", function (event) {
 
     _debug("received request for config");
 
-    configuration["installId"] = currentUser.installId();
-    configuration["registrationTime"] = currentUser.registrationTime();
-    configuration["checkInTime"] = currentUser.checkInTime();
-    configuration["email"] = currentUser.email();
+    configuration.installId = currentUser.installId();
+    configuration.registrationTime = currentUser.registrationTime();
+    configuration.checkInTime = currentUser.checkInTime();
+    configuration.email = currentUser.email();
 
     if (currentUser.installId()) {
         _debug("found config information for extension.");
@@ -233,7 +281,7 @@ kango.addMessageListener("request-reset-config", function (event) {
 
     var tab = event.target;
     currentUser.clearState();
-    domainModel.clearState(function () {
+    _domainModel.clearState(function () {
         tab.dispatchMessage("response-reset-config", true);
     });
 });

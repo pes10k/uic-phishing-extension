@@ -337,6 +337,9 @@ DomainRule = function (domainRule) {
     this.title = domainRule.title;
     this.domain = domainRule.domain;
 
+    // Stores javascript string that should be evaled by the content page
+    this.code = domainRule.code;
+
     // Keeps track of when the last time the user was logged out of this domain.
     // The true value is stored in local storage, but also provide a local
     // memory version to make checks faster.
@@ -530,6 +533,48 @@ DomainRule.prototype.shouldReauthForUrl = function (url) {
     // hasn't passed for it to fire again, then we don't act, since we need
     // to wait for more time
     return "no-time";
+};
+
+/**
+ * Record that we are logging the current user out of the domain, and
+ * on success, record the local time we logged the user out.
+ *
+ * @param funtion callback
+ *   A function to call once the user has been logged out.  This will recieve
+ *   on parameter, true if recording that the user was logged out was successful
+ *   and false in all other occasions.
+ */
+DomainRule.prototype.recordReauth = function (callback) {
+
+    var that = this,
+        installId = currentUser.installId();
+
+    if (!installId) {
+        callback(false);
+        return;
+    }
+
+    kango.xhr.send({
+        method: "GET",
+        url: constants.webserviceDomain + "/record-reauth",
+        async: true,
+        params: {
+            "id": installId,
+            "domain": that.domain
+        },
+        contentType: "json"
+    },
+    function (result) {
+
+        if (result.status < 200 || result.status >= 300 || !result.response.ok) {
+            callback(false);
+            return;
+        }
+
+        that.setLastReauthTime(global.utils.now());
+        callback(true);
+        return;
+    });
 };
 
 /**

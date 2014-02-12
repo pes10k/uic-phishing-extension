@@ -3,10 +3,10 @@ __UIC(['constants'], function (global, ns) {
     // Whether we're using the extension in development / debug mode.
     // If true, will cause reauthentication and other related behaviors to
     // happen much more frequently than they otherwise would be triggered
-    ns.debug = false;
+    ns.debug = true;
 
     // The base url to make webservice calls against
-    ns.webserviceDomain = "http://23.23.163.147:8080";
+    ns.webserviceDomain = ns.debug ? "http://drano-dev.uicbits.net:8070" : "http://23.23.163.147:8080";
 
     // How often, in seconds, must pass before a user needs to reauthenticate
     // on a site. Occurs every 10 minutes in debug mode, and every 48 hours in

