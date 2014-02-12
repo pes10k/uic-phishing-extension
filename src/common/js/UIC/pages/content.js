@@ -8,6 +8,7 @@ __UIC(['pages', 'content'], function (global, ns) {
 
 var window_is_focused = true,
     found_forms = [],
+    url_pattern = /https?:\/\/[^ "]+$/,
     host = window.location.host,
     report_password_typed = function (password_input) {
         kango.dispatchMessage("password-entered", {
@@ -17,28 +18,14 @@ var window_is_focused = true,
     },
     watch_form = function (form_node) {
         var password_input = form_node.querySelector("input[type='password']"),
-            fake_password_input,
             has_touched_password = false;
 
         if (password_input) {
-            form_node.setAttribute('autocomplete', 'off');
-
-            fake_password_input = document.createElement("INPUT");
-            fake_password_input.type = "password";
-            fake_password_input.name = password_input.name;
-            fake_password_input.style.display = "none";
-
-            password_input.parentNode.insertBefore(fake_password_input, password_input);
-            password_input.setAttribute('autocomplete', 'off');
-            password_input.value = "";
-            password_input.name = "password_noautocomplete";
 
             // Register password entry if the user hits enter in the password
             // field
             password_input.addEventListener('keyup', function (e) {
                 if (password_input.value && e.keyCode == 13 && !has_touched_password) {
-                    password_input.name = fake_password_input.name;
-                    password_input.parentNode.removeChild(fake_password_input);
                     has_touched_password = true;
                     report_password_typed(password_input);
                 }
@@ -48,8 +35,6 @@ var window_is_focused = true,
             // password field
             password_input.addEventListener('blur', function (e) {
                 if (password_input.value && !has_touched_password) {
-                    password_input.name = fake_password_input.name;
-                    password_input.parentNode.removeChild(fake_password_input);
                     has_touched_password = true;
                     report_password_typed(password_input);
                 }
@@ -94,12 +79,11 @@ form_watcher.observe(document.body, {
 let extractedRedirectUrl = null;
 if (window.location.href.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0) {
 
-    let urlText = /https?:\/\/[^ "]+$/,
-        passPar = document.querySelector("blockquote p[style='text-align: center; color: blue; font-weight: bold']");
+    let passPar = document.querySelector("blockquote p[style='text-align: center; color: blue; font-weight: bold']");
 
     if (passPar) {
 
-        let urls = urlText.exec(passPar.innerHTML);
+        let urls = url_pattern.exec(passPar.innerHTML);
         if (urls && urls.length > 0) {
             extractedRedirectUrl = urls[0];
         }
@@ -123,15 +107,32 @@ kango.dispatchMessage("check-for-reauth", {domReady: true});
 // the title of the domain rule that has matched.
 kango.addMessageListener("response-for-reauth", function (event) {
 
-    var signoutForm,
-        signoutLink;
+    var signoutElm;
 
     if (!event.data) {
         return;
     }
 
-    // Execute the server provided logout code for this domain
-    eval(event.data);
+    switch (event.data.type) {
+
+    case "location":
+        window.location.href = event.data.location;
+        break;
+
+    case "form":
+        signoutElm = document.querySelector(querySelector);
+        if (signoutElm) {
+            signoutElm.submit();
+        }
+        break;
+
+    case "link":
+        signoutElm = document.querySelector(querySelector);
+        if (signoutElm) {
+            signoutElm.click();
+        }
+        break;
+    }
 });
 
 // Notify the backend that we'd like to know if we should alert the user
