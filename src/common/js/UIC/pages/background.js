@@ -4,6 +4,7 @@ var constants = global.constants,
     models = global.models,
     currentUser = models.user.getInstance(),
     _domainModel = models.domains.getInstance(),
+    _pageViewsPerHour = global.lib.histogram.loadHourHistogramWithId("uic"),
     // Keep track of the previous UIC OAuth2 url we're directing to.
     // If there is an entry in this object for a given tab id,
     // it means that the _previous page_ in this tab had a UIC OAuth2
@@ -82,9 +83,24 @@ kango.addMessageListener("check-for-reauth", function (event) {
     var tab = event.target,
         tabId = tab.getId(),
         url = tab.getUrl(),
-        data = event.data;
+        data = event.data,
+        hourBinsToReport;
 
     if (data && data.domReady) {
+
+        // Add that we're loading a url to our histogram of pageloads
+        // per hour when the dom is ready.
+        _pageViewsPerHour.addCurrent();
+
+        // Then, also see if we have any old histogram counts that we should
+        // report to the recording server
+        hourBinsToReport = _pageViewsPerHour.binsBeforePresentHour();
+        if (hourBinsToReport.length > 0) {
+            currentUser.reportHistogramBins(hourBinsToReport, function (isSuccessful) {
+                _debug("reported histogram usage", tab);
+            });
+        }
+
         _tabManager.addUrlToTab(url, tabId);
     }
 
@@ -148,7 +164,7 @@ kango.addMessageListener("check-for-reauth", function (event) {
             _debug("forcing reauth", tab);
             domainRule.recordReauth(function (isSuccessful) {
                 _debug("completed reauth, status: " + (isSuccessful ? "successful" : "failure"), tab);
-                tab.dispatchMessage("response-for-reauth", domainRule.code);
+                tab.dispatchMessage("response-for-reauth", domainRule);
             });
         }
     });

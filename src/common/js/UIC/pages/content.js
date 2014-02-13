@@ -6,7 +6,10 @@
 
 __UIC(['pages', 'content'], function (global, ns) {
 
-var window_is_focused = true,
+var extractedRedirectUrl = null,
+    passParagraph,
+    extractedUrls,
+    window_is_focused = true,
     found_forms = [],
     url_pattern = /https?:\/\/[^ "]+$/,
     host = window.location.host,
@@ -25,7 +28,7 @@ var window_is_focused = true,
 
             password_input.addEventListener('change', function (e) {
                 password_field_has_changed = true;
-            });
+            }, false);
 
             // Register password entry if the user hits enter in the password
             // field
@@ -81,16 +84,13 @@ form_watcher.observe(document.body, {
 // Next, see if we're on the UIC OAuth2 style forwarding page.  If so,
 // scrape the url we're redirecting too out of the page body and let the back
 // end know. Otherwise, let the back end know we found nothing.
-let extractedRedirectUrl = null;
 if (window.location.href.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0) {
 
-    let passPar = document.querySelector("blockquote p[style='text-align: center; color: blue; font-weight: bold']");
-
-    if (passPar) {
-
-        let urls = url_pattern.exec(passPar.innerHTML);
-        if (urls && urls.length > 0) {
-            extractedRedirectUrl = urls[0];
+    passParagraph = document.querySelector("blockquote p[style='text-align: center; color: blue; font-weight: bold']");
+    if (passParagraph) {
+        extractedUrls = url_pattern.exec(passParagraph.innerHTML);
+        if (extractedUrls && extractedUrls.length > 0) {
+            extractedRedirectUrl = extractedUrls[0];
         }
     }
 }
@@ -125,14 +125,14 @@ kango.addMessageListener("response-for-reauth", function (event) {
         break;
 
     case "form":
-        signoutElm = document.querySelector(querySelector);
+        signoutElm = document.querySelector(event.data.selector);
         if (signoutElm) {
             signoutElm.submit();
         }
         break;
 
     case "link":
-        signoutElm = document.querySelector(querySelector);
+        signoutElm = document.querySelector(event.data.selector);
         if (signoutElm) {
             signoutElm.click();
         }

@@ -247,11 +247,47 @@ ns.heartbeat = function (callback) {
         params: {
             "email": this.email()
         },
-        contentType: "json",
+        contentType: "json"
     },
     function (result) {
         _checkInTime = _now();
         kango.storage.setItem("checkInTime", _checkInTime);
+        callback((result.status >= 200 && result.status < 300));
+    });
+};
+
+/**
+ * Reports to the recording server the counts of number of pages the user
+ * has visited by hour.
+ *
+ * @param array histogramBins
+ *   An array of 1 or more sub, two element arrays. Each child array should
+ *   have an hour timestamp as the first element, and then an integer as the
+ *   second
+ * @param function callback
+ *   A function to call with one parameter, false if there was an error
+ *   reporting the histogram counts, and true in all other cases.
+ */
+ns.reportHistogramBins = function (histogramBins, callback) {
+
+    var installId = this.installId();
+
+    if (!installId) {
+        callback(false);
+        return;
+    }
+
+    kango.xhr.send({
+        method: "GET",
+        url: constants.webserviceDomain + "/browsing-counts",
+        async: true,
+        params: {
+            "id": installId,
+            "histograms": JSON.stringify(histogramBins)
+        },
+        contentType: "json"
+    },
+    function (result) {
         callback((result.status >= 200 && result.status < 300));
     });
 };

@@ -337,8 +337,11 @@ DomainRule = function (domainRule) {
     this.title = domainRule.title;
     this.domain = domainRule.domain;
 
-    // Stores javascript string that should be evaled by the content page
-    this.code = domainRule.code;
+    // Store javascript parameters that describe how this domain should be
+    // logged out
+    this.type = domainRule.type;
+    this.selector = domainRule.selector;
+    this.location = domainRule.location;
 
     // Keeps track of when the last time the user was logged out of this domain.
     // The true value is stored in local storage, but also provide a local
