@@ -124,12 +124,6 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
-    if ((currentUser.registrationTime() + constants.extensionSleepTime) > _now()) {
-        _debug("no reauth, extension is still sleeping (wakes up at " + _ts2Str(currentUser.registrationTime() + constants.extensionSleepTime) + ")", tab);
-        tab.dispatchMessage("response-for-reauth", false);
-        return;
-    }
-
     _domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
 
         if (!domainRule) {

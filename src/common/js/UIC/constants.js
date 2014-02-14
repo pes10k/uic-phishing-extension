@@ -32,15 +32,15 @@ __UIC(['constants'], function (global, ns) {
 
     // The minimum amount of time that needs to pass between pinging the
     // heartbeat server to let the service know that the user is still active
-    // Occurs every 10 minutes in debug mode, and every 12 hours in
+    // Occurs every 10 minutes in debug mode, and every hour in
     // normal deployment
-    ns.heartbeatTime = ns.debug ? 600 : 43200;
+    ns.heartbeatTime = ns.debug ? 600 : 3600;
 
     // How long a page stays in a tab's history before its removed.
     // This value affects how often a user will need to reautenticate. If a
     // domain is in any tab's histroy, the user will not need to reauthenticate
     // with that domain.
-    ns.pageHistoryTime = 60;
+    ns.pageHistoryTime = 10;
 
     ns.version = kango.getExtensionInfo().version;
 
