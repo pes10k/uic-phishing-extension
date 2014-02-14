@@ -128,7 +128,7 @@ ns.email = function () {
 ns.isExperimentGroup = function () {
 
     if (!_group) {
-        _group = kango.storage.getItem("experiment");
+        _group = kango.storage.getItem("group");
     }
 
     return (_group === "experiment");
