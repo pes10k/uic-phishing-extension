@@ -181,7 +181,7 @@ ns.getUpdateTime = function () {
         return _updateTime;
     }
 
-    _updateTime = kango.storage.getItem("domain_rules_ts") || null;
+    _updateTime = kango.storage.getItem("domain_rules_ts");
     return _updateTime;
 };
 

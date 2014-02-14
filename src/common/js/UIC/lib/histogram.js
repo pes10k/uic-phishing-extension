@@ -237,7 +237,8 @@ ns.histogramFromJSON = function (json) {
  * A special use case of the Histogram class that automatically creates bins by
  * hour.
  */
-HourHistogram = function () {
+HourHistogram = function (identifier) {
+    this._id = identifier;
     this._bins = {};
 };
 

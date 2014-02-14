@@ -20,7 +20,7 @@ var constants = global.constants,
 ns.installId = function () {
 
     if (!_installId) {
-        _installId = kango.storage.getItem("installId");
+        _installId = kango.storage.getItem("install_id");
     }
 
     return _installId;
@@ -77,7 +77,7 @@ ns.blindValue = function (value) {
 ns.registrationTime = function () {
 
     if (!_registrationTime) {
-        _registrationTime = kango.storage.getItem("registrationTime");
+        _registrationTime = kango.storage.getItem("registration_time");
     }
 
     return _registrationTime;
@@ -95,7 +95,7 @@ ns.registrationTime = function () {
 ns.checkInTime = function () {
 
     if (!_checkInTime) {
-        _checkInTime = kango.storage.getItem("checkInTime");
+        _checkInTime = kango.storage.getItem("check_in_time");
     }
 
     return _checkInTime;
@@ -146,16 +146,16 @@ ns.clearState = function () {
     kango.storage.removeItem("email");
 
     _registrationTime = null;
-    kango.storage.removeItem("registrationTime");
+    kango.storage.removeItem("registration_time");
 
     _installId = null;
-    kango.storage.removeItem("installId");
+    kango.storage.removeItem("install_id");
 
     _group = null;
     kango.storage.removeItem("group");
 
     _checkInTime = null;
-    kango.storage.removeItem("checkInTime");
+    kango.storage.removeItem("check_in_time");
 };
 
 /**
@@ -208,10 +208,10 @@ ns.registerUser = function (email, callback) {
 
             kango.storage.setItem("secret", sjcl.codec.hex.fromBits(sjcl.random.randomWords(8)));
             kango.storage.setItem("email", email);
-            kango.storage.setItem("installId", registerResult.response._id);
+            kango.storage.setItem("install_id", registerResult.response._id);
             kango.storage.setItem("group", registerResult.response.group);
-            kango.storage.setItem("registrationTime", _now());
-            kango.storage.setItem("checkInTime", _now());
+            kango.storage.setItem("registration_time", _now());
+            kango.storage.setItem("check_in_time", _now());
             callback(true);
             return;
         });
@@ -251,7 +251,7 @@ ns.heartbeat = function (callback) {
     },
     function (result) {
         _checkInTime = _now();
-        kango.storage.setItem("checkInTime", _checkInTime);
+        kango.storage.setItem("check_in_time", _checkInTime);
         callback((result.status >= 200 && result.status < 300));
     });
 };
