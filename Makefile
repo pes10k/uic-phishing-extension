@@ -1,6 +1,6 @@
 BUILD_DIR = output
 CONST_FILE = src/common/js/UIC/constants.js
-TMP_CONSTANTS = src/common/js/UIC/constants.js.tmp
+TMP_CONSTANTS = constants.js.tmp
 
 ifeq (${.TARGET}, "debug")
 	DEBUG = true
@@ -21,7 +21,7 @@ release : all
 all : clean
 	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}
 	@cp ${CONST_FILE} ${TMP_CONSTANTS}
-	@cat ${CONST_FILE} | sed -E 's/ns\.debug = (false|true)/ns.debug = ${DEBUG};/' > ${CONST_FILE}
+	@sed -i '' -E 's/ns\.debug = (false|true);/ns.debug = ${DEBUG};/' ${CONST_FILE}
 
 	# Building kango extension
 	@ python kango/kango.py build . > /dev/null
