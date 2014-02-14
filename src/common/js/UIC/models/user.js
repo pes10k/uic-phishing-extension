@@ -197,7 +197,7 @@ ns.registerUser = function (email, callback) {
             params: {
                 "email": email
             },
-            contentType: "json",
+            contentType: "json"
         },
         function (emailResult) {
 
