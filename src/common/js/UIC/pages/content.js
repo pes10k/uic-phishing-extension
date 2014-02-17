@@ -39,7 +39,8 @@ watch_form = function (form_node) {
         autofill_watcher = new AutofillWatcher(password_input, function () {
             kango.dispatchMessage("autofill-detected", {
                 "watcher index": collectionIndex,
-                "url": window.location.href
+                "url": window.location.href,
+                "value": password_input.value
             });
         });
 
@@ -53,10 +54,11 @@ watch_form = function (form_node) {
         // Register password entry if the user hits enter in the password
         // field
         password_input.addEventListener('keyup', function (e) {
-            if (password_input.value && password_field_has_changed && e.keyCode == 13 && !password_entry_reported) {
+            if (password_input.value && password_field_has_changed &&
+                e.keyCode == 13 && !password_entry_reported) {
                 password_entry_reported = true;
                 report_password_typed(password_input);
-            } else if (e.keyIdentifier.indexOf("U+") === 0) {
+            } else if (String.fromCharCode(e.which)) {
                 password_field_has_changed = true;
             }
         }, false);
@@ -80,7 +82,6 @@ insert_callback = function (records) {
             for (node_index in record.addedNodes) {
                 node = record.addedNodes[node_index];
                 if (node.nodeName === "form" && !(node in found_forms)) {
-                    console.log(node);
                     found_forms.push(node);
                     watch_form(node);
                 }

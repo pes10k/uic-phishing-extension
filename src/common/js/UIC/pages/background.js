@@ -14,10 +14,8 @@ var constants = global.constants,
     _now = global.utils.now,
     _ts2Str = global.utils.timestampToString,
     _debug = function (msg, tab) {
-
         var tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
-
-        if (constants.debug && console && console.log) {
+        if (constants.debug) {
             kango.console.log(msg + tabDesc);
         }
     };
@@ -258,6 +256,7 @@ kango.addMessageListener("autofill-detected", function (event) {
 
     var tab = event.target,
         watcherIndex = event.data['watcher index'],
+        value = event.data.value,
         url = event.data.url,
         installId = currentUser.installId(),
         shouldClear = false,
@@ -272,6 +271,8 @@ kango.addMessageListener("autofill-detected", function (event) {
         watcherIndex = null;
 
     } else {
+
+        _debug("value in password field is: " + value);
 
         shouldClear = constants.debug || currentUser.isAutoFillGroup();
 

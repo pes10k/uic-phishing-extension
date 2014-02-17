@@ -90,7 +90,10 @@ AutofillWatcher.prototype.hasAutofilled = function () {
  * this instance has ben autofilled.
  */
 AutofillWatcher.prototype.triggerEvent = function () {
-    this._callback(this);
+    if (this._callback) {
+        this._callback(this);
+        this._callback = null;
+    }
 };
 
 /**
