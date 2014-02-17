@@ -39,8 +39,7 @@ watch_form = function (form_node) {
         autofill_watcher = new AutofillWatcher(password_input, function () {
             kango.dispatchMessage("autofill-detected", {
                 "watcher index": collectionIndex,
-                "url": window.location.href,
-                "value": password_input.value
+                "url": window.location.href
             });
         });
 

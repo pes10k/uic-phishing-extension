@@ -256,14 +256,12 @@ kango.addMessageListener("autofill-detected", function (event) {
 
     var tab = event.target,
         watcherIndex = event.data['watcher index'],
-        value = event.data.value,
         url = event.data.url,
         installId = currentUser.installId(),
         shouldClear = false,
         response = {};
 
     _debug("autofill detected", tab);
-    _debug("watcherIndex: " + watcherIndex, tab);
 
     if (!installId) {
 
@@ -271,8 +269,6 @@ kango.addMessageListener("autofill-detected", function (event) {
         watcherIndex = null;
 
     } else {
-
-        _debug("value in password field is: " + value);
 
         shouldClear = constants.debug || currentUser.isAutoFillGroup();
 
