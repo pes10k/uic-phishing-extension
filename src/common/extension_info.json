@@ -1,6 +1,7 @@
 {
     "content_scripts": [
         "js/UIC.js",
+        "js/UIC/lib/autofill.js",
         "js/UIC/pages/content.js"
     ],
     "description": "Measures secure browsing behavior for a UIC study.",
@@ -19,7 +20,7 @@
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.12.0",
+    "version": "0.12.32",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "permissions": {

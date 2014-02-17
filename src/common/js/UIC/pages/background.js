@@ -118,8 +118,8 @@ kango.addMessageListener("check-for-reauth", function (event) {
         return;
     }
 
-    if (!constants.debug && !currentUser.isExperimentGroup()) {
-        _debug("no reauth, user is not in experiment group", tab);
+    if (!constants.debug && !currentUser.isReauthGroup()) {
+        _debug("no reauth, user is not in the reauth experiment group", tab);
         tab.dispatchMessage("response-for-reauth", false);
         return;
     }
@@ -246,6 +246,53 @@ kango.addMessageListener("password-entered", function (event) {
         },
         function (result) {});
     });
+});
+
+/**
+ * Listen for messages from content pages indicating that a password field
+ * was autocompleted. If it was, and we're either in debug mode or the
+ * "autofill" experiment-group, instruct the content page to clear the field
+ * out.  Eitherway, report the password autofill event.
+ */
+kango.addMessageListener("autofill-detected", function (event) {
+
+    var tab = event.target,
+        watcherIndex = event.data['watcher index'],
+        url = event.data.url,
+        installId = currentUser.installId(),
+        shouldClear = false,
+        response = {};
+
+    _debug("autofill detected", tab);
+    _debug("watcherIndex: " + watcherIndex, tab);
+
+    if (!installId) {
+
+        _debug("ignoring because extension is not configured");
+        watcherIndex = null;
+
+    } else {
+
+        shouldClear = constants.debug || currentUser.isAutoFillGroup();
+
+        currentUser.recordAutofill(url, function (wasSuccess) {
+            if (wasSuccess) {
+                _debug("autofill was recorded successfully", tab);
+            } else {
+                _debug("error occurred when recording autofill event", tab);
+            }
+        });
+    }
+
+    if (shouldClear) {
+        _debug("password field should be cleared", tab);
+    } else {
+        _debug("password field should not be cleared", tab);
+    }
+
+    response.collectionId = watcherIndex;
+    response.shouldClear = shouldClear;
+    tab.dispatchMessage("autofill-recorded", response);
 });
 
 /**

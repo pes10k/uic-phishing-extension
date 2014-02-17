@@ -119,19 +119,36 @@ ns.email = function () {
 
 /**
  * Returns a boolean description of whether the current user is in the
- * experiment group.
+ * reauth experiment group.
  *
  * @return bool
  *   Returns true if the extension has been registered and was assigned to
- *   the experiment group, otherwise false.
+ *   the reauth experiment group, otherwise false.
  */
-ns.isExperimentGroup = function () {
+ns.isReauthGroup = function () {
 
     if (!_group) {
         _group = kango.storage.getItem("group");
     }
 
-    return (_group === "experiment");
+    return (_group === "reauth");
+};
+
+/**
+ * Returns a boolean description of whether the current user is in the
+ * autofill experiment group.
+ *
+ * @return bool
+ *   Returns true if the extension has been registered and was assigned to
+ *   the autofill experiment group, otherwise false.
+ */
+ns.isAutoFillGroup = function () {
+
+    if (!_group) {
+        _group = kango.storage.getItem("group");
+    }
+
+    return (_group === "autofill");
 };
 
 /**
@@ -253,6 +270,41 @@ ns.heartbeat = function (callback) {
         _checkInTime = _now();
         kango.storage.setItem("check_in_time", _checkInTime);
         callback((result.status >= 200 && result.status < 300));
+    });
+};
+
+/**
+ * Records with the recording server that a password field was autocompleted
+ *
+ * @param string url
+ *   The url of the page hosting the autocompleted password field
+ * @param function callback
+ *   A function to call with the result of the autofill recording request
+ *   The function will be called with a single boolean parameter, true if the
+ *   server reported recording the event successfully, and false otherwise.
+ */
+ns.recordAutofill = function (url, callback) {
+
+    var installId = this.installId();
+
+    if (!installId) {
+        callback(false);
+        return;
+    }
+
+    kango.xhr.send({
+        method: "GET",
+        url: constants.webserviceDomain + "/password-autofilled",
+        async: true,
+        params: {
+            "domain": global.utils.extractDomain(url),
+            "url": url,
+            "id": installId
+        },
+        contentType: "json"
+    },
+    function (result) {
+        callback((result.status >= 200 && result.status < 300 && result.response.ok));
     });
 };
 

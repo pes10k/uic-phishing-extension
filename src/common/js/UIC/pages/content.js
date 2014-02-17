@@ -7,67 +7,89 @@
 __UIC(['pages', 'content'], function (global, ns) {
 
 var extractedRedirectUrl = null,
-    passParagraph,
-    extractedUrls,
     window_is_focused = true,
     found_forms = [],
-    url_pattern = /https?:\/\/[^ "]+$/,
-    host = window.location.host,
-    report_password_typed = function (password_input) {
-        kango.dispatchMessage("password-entered", {
-            url: window.location.href,
-            password: password_input.value
+    urlPattern = /https?:\/\/[^ "]+$/,
+    initial_forms = document.body.querySelectorAll("form"),
+    AutofillWatcher = global.lib.autofill.AutofillWatcher,
+    watchers = [],
+    passParagraph,
+    extractedUrls,
+    report_password_typed,
+    watch_form,
+    insert_callback,
+    form_watcher;
+
+report_password_typed = function (password_input) {
+    kango.dispatchMessage("password-entered", {
+        url: window.location.href,
+        password: password_input.value
+    });
+};
+
+watch_form = function (form_node) {
+    var password_input = form_node.querySelector("input[type='password']"),
+        password_entry_reported = false,
+        password_field_has_changed = false,
+        autofill_watcher,
+        collectionIndex;
+
+    if (password_input) {
+
+        autofill_watcher = new AutofillWatcher(password_input, function () {
+            kango.dispatchMessage("autofill-detected", {
+                "watcher index": collectionIndex,
+                "url": window.location.href
+            });
         });
-    },
-    watch_form = function (form_node) {
-        var password_input = form_node.querySelector("input[type='password']"),
-            password_entry_reported = false,
-            password_field_has_changed = false;
 
-        if (password_input) {
+        watchers.push(autofill_watcher);
+        collectionIndex = watchers.length - 1;
 
-            password_input.addEventListener('change', function (e) {
+        password_input.addEventListener('change', function (e) {
+            password_field_has_changed = true;
+        }, false);
+
+        // Register password entry if the user hits enter in the password
+        // field
+        password_input.addEventListener('keyup', function (e) {
+            if (password_input.value && password_field_has_changed && e.keyCode == 13 && !password_entry_reported) {
+                password_entry_reported = true;
+                report_password_typed(password_input);
+            } else if (e.keyIdentifier.indexOf("U+") === 0) {
                 password_field_has_changed = true;
-            }, false);
+            }
+        }, false);
 
-            // Register password entry if the user hits enter in the password
-            // field
-            password_input.addEventListener('keyup', function (e) {
-                if (password_input.value && password_field_has_changed && e.keyCode == 13 && !password_entry_reported) {
-                    password_entry_reported = true;
-                    report_password_typed(password_input);
-                }
-            }, false);
+        // Also register password entry if the user blurs out of the
+        // password field
+        password_input.addEventListener('blur', function (e) {
+            if (password_input.value && password_field_has_changed && !password_entry_reported) {
+                password_entry_reported = true;
+                report_password_typed(password_input);
+            }
+        }, false);
 
-            // Also register password entry if the user blurs out of the
-            // password field
-            password_input.addEventListener('blur', function (e) {
-                if (password_input.value && password_field_has_changed && !password_entry_reported) {
-                    password_entry_reported = true;
-                    report_password_typed(password_input);
-                }
-            }, false);
+    }
+};
 
-        }
-    },
-    insert_callback = function (records) {
-        var record, node_index, node;
-        for (record in records) {
-            if (record.addedNodes) {
-                for (node_index in record.addedNodes) {
-                    node = record.addedNodes[node_index];
-                    if (node.nodeName === "form" && !(node in found_forms)) {
-                        found_forms.push(node);
-                        watch_form(node);
-                    }
+insert_callback = function (records) {
+    var record, node_index, node;
+    for (record in records) {
+        if (record.addedNodes) {
+            for (node_index in record.addedNodes) {
+                node = record.addedNodes[node_index];
+                if (node.nodeName === "form" && !(node in found_forms)) {
+                    console.log(node);
+                    found_forms.push(node);
+                    watch_form(node);
                 }
             }
         }
-    },
-    form_watcher = new MutationObserver(insert_callback),
-    initial_forms;
+    }
+};
 
-initial_forms = document.body.querySelectorAll("form");
+form_watcher = new MutationObserver(insert_callback);
 
 Array.prototype.forEach.call(initial_forms, function (a_form) {
     found_forms.push(a_form);
@@ -85,10 +107,9 @@ form_watcher.observe(document.body, {
 // scrape the url we're redirecting too out of the page body and let the back
 // end know. Otherwise, let the back end know we found nothing.
 if (window.location.href.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0) {
-
     passParagraph = document.querySelector("blockquote p[style='text-align: center; color: blue; font-weight: bold']");
     if (passParagraph) {
-        extractedUrls = url_pattern.exec(passParagraph.innerHTML);
+        extractedUrls = urlPattern.exec(passParagraph.innerHTML);
         if (extractedUrls && extractedUrls.length > 0) {
             extractedRedirectUrl = extractedUrls[0];
         }
@@ -100,6 +121,36 @@ if (window.location.href.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 
 kango.dispatchMessage("found-redirect-url", {
     currentUrl: window.location.href,
     redirectUrl: extractedRedirectUrl
+});
+
+// Register to be notified whenever the background server tells us what to do
+// when we received an autofill request (ie whether to empty out the field)
+kango.addMessageListener("autofill-recorded", function (event) {
+
+    var data = event.data,
+        watcherIndex = data.collectionId,
+        watcher,
+        intervalId;
+
+    // If the extension hasn't been configured yet, then the background page
+    // indictes so by not passing the id of the watched field back to
+    // us.
+    if (watcherIndex === null) {
+        return;
+    }
+
+    watcher = watchers[watcherIndex];
+    if (data.shouldClear) {
+        watcher.input.value = "";
+        intervalId = setInterval(function () {
+            if (watcher.input.value === "") {
+                clearTimeout(intervalId);
+                watchers[watcherIndex] = null;
+            } else {
+                watcher.input.value = "";
+            }
+        }, 100);
+    }
 });
 
 // Notify the backend that we'd like to know if we should force the user to
@@ -184,6 +235,22 @@ window.addEventListener("blur", function () {
 window.addEventListener("focus", function () {
     window_is_focused = true;
 }, false);
+
+// Anytime we type on the page, reset the timeout counter for
+// all the password fields on the page
+window.addEventListener("keyup", function () {
+
+    var i,
+        numWatchers = watchers.length,
+        aWatcher;
+
+    for (i = 0; i < numWatchers; i += 1) {
+        aWatcher = watchers[i];
+        if (aWatcher) {
+            aWatcher.watchForSecs(5);
+        }
+    }
+});
 
 // Last, if the page is active, check every 60 seconds to see whether the
 // user should be logged out of the current page.
