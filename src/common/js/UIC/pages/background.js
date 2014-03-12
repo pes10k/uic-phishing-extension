@@ -255,7 +255,7 @@ kango.addMessageListener("password-entered", function (event) {
 kango.addMessageListener("autofill-detected", function (event) {
 
     var tab = event.target,
-        watcherIndex = event.data['watcher index'],
+        watcherIndex = event.data.watcher_index,
         url = event.data.url,
         installId = currentUser.installId(),
         shouldClear = false,
