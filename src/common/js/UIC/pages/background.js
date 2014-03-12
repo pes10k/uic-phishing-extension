@@ -256,6 +256,7 @@ kango.addMessageListener("autofill-detected", function (event) {
 
     var tab = event.target,
         watcherIndex = event.data.watcher_index,
+        isFirstAutofill = event.data.is_first_autofill,
         url = event.data.url,
         installId = currentUser.installId(),
         shouldClear = false,
@@ -272,13 +273,16 @@ kango.addMessageListener("autofill-detected", function (event) {
 
         shouldClear = constants.debug || currentUser.isAutoFillGroup();
 
-        currentUser.recordAutofill(url, function (wasSuccess) {
-            if (wasSuccess) {
-                _debug("autofill was recorded successfully", tab);
-            } else {
-                _debug("error occurred when recording autofill event", tab);
-            }
-        });
+        // Only record at most one autofill event, per page, per element
+        if (isFirstAutofill) {
+            currentUser.recordAutofill(url, function (wasSuccess) {
+                if (wasSuccess) {
+                    _debug("autofill was recorded successfully", tab);
+                } else {
+                    _debug("error occurred when recording autofill event", tab);
+                }
+            });
+        }
     }
 
     if (shouldClear) {

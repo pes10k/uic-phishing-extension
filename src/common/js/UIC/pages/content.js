@@ -7,96 +7,96 @@
 __UIC(['pages', 'content'], function (global, ns) {
 
 var extractedRedirectUrl = null,
-    window_is_focused = true,
-    found_forms = [],
+    windowIsFocused = true,
+    foundForms = [],
     urlPattern = /https?:\/\/[^ "]+$/,
-    initial_forms = document.body.querySelectorAll("form"),
-    AutofillWatcher = global.lib.autofill.AutofillWatcher,
-    watchers = [],
+    initialForms = document.body.querySelectorAll("form"),
+    anAutofillReported = false,
+    autofillWatcher,
     passParagraph,
     extractedUrls,
-    report_password_typed,
-    watch_form,
-    insert_callback,
-    form_watcher;
+    reportPasswordTyped,
+    watchForm,
+    insertCallback,
+    formWatcher;
 
-report_password_typed = function (password_input) {
+autofillWatcher = global.lib.autofill.autofillWatcher(function (watchedElement, index) {
+    var isFirstAutofill = !anAutofillReported;
+    anAutofillReported = true;
+    kango.dispatchMessage("autofill-detected", {
+        "is_first_autofill": isFirstAutofill,
+        "watcher_index": index,
+        "url": window.location.href
+    });
+});
+
+reportPasswordTyped = function (pwInput) {
     kango.dispatchMessage("password-entered", {
         url: window.location.href,
-        password: password_input.value
+        password: pwInput.value
     });
 };
 
-watch_form = function (form_node) {
-    var password_input = form_node.querySelector("input[type='password']"),
-        password_entry_reported = false,
-        password_field_has_changed = false,
-        autofill_watcher,
-        collectionIndex;
+watchForm = function (form_node) {
+    var pwInput = form_node.querySelector("input[type='password']"),
+        pwEntryReported = false,
+        pwFieldHasChanged = false;
 
-    if (password_input) {
+    if (pwInput) {
 
-        autofill_watcher = new AutofillWatcher(password_input, function () {
-            kango.dispatchMessage("autofill-detected", {
-                "watcher_index": collectionIndex,
-                "url": window.location.href
-            });
-        });
+        autofillWatcher.addInput(pwInput);
 
-        watchers.push(autofill_watcher);
-        collectionIndex = watchers.length - 1;
-
-        password_input.addEventListener('change', function (e) {
-            password_field_has_changed = true;
+        pwInput.addEventListener('change', function (e) {
+            pwFieldHasChanged = true;
         }, false);
 
         // Register password entry if the user hits enter in the password
         // field
-        password_input.addEventListener('keyup', function (e) {
-            if (password_input.value && password_field_has_changed &&
-                e.keyCode == 13 && !password_entry_reported) {
-                password_entry_reported = true;
-                report_password_typed(password_input);
+        pwInput.addEventListener('keyup', function (e) {
+            if (pwInput.value && pwFieldHasChanged &&
+                e.keyCode == 13 && !pwEntryReported) {
+                pwEntryReported = true;
+                reportPasswordTyped(pwInput);
             } else if (String.fromCharCode(e.which)) {
-                password_field_has_changed = true;
+                pwFieldHasChanged = true;
             }
         }, false);
 
         // Also register password entry if the user blurs out of the
         // password field
-        password_input.addEventListener('blur', function (e) {
-            if (password_input.value && password_field_has_changed && !password_entry_reported) {
-                password_entry_reported = true;
-                report_password_typed(password_input);
+        pwInput.addEventListener('blur', function (e) {
+            if (pwInput.value && pwFieldHasChanged && !pwEntryReported) {
+                pwEntryReported = true;
+                reportPasswordTyped(pwInput);
             }
         }, false);
 
     }
 };
 
-insert_callback = function (records) {
-    var record, node_index, node;
+insertCallback = function (records) {
+    var record, nodeIndex, node;
     for (record in records) {
         if (record.addedNodes) {
-            for (node_index in record.addedNodes) {
-                node = record.addedNodes[node_index];
-                if (node.nodeName === "form" && !(node in found_forms)) {
-                    found_forms.push(node);
-                    watch_form(node);
+            for (nodeIndex in record.addedNodes) {
+                node = record.addedNodes[nodeIndex];
+                if (node.nodeName === "form" && !(node in foundForms)) {
+                    foundForms.push(node);
+                    watchForm(node);
                 }
             }
         }
     }
 };
 
-form_watcher = new MutationObserver(insert_callback);
+formWatcher = new MutationObserver(insertCallback);
 
-Array.prototype.forEach.call(initial_forms, function (a_form) {
-    found_forms.push(a_form);
-    watch_form(a_form);
+Array.prototype.forEach.call(initialForms, function (a_form) {
+    foundForms.push(a_form);
+    watchForm(a_form);
 });
 
-form_watcher.observe(document.body, {
+formWatcher.observe(document.body, {
     childList: true,
     attributes: true,
     characterData: true
@@ -130,7 +130,8 @@ kango.addMessageListener("autofill-recorded", function (event) {
     var data = event.data,
         watcherIndex = data.collectionId,
         watcher,
-        intervalId;
+        intervalId,
+        fetchedValue;
 
     // If the extension hasn't been configured yet, then the background page
     // indictes so by not passing the id of the watched field back to
@@ -139,15 +140,14 @@ kango.addMessageListener("autofill-recorded", function (event) {
         return;
     }
 
-    watcher = watchers[watcherIndex];
+    watcher = autofillWatcher.get(watcherIndex);
     if (data.shouldClear) {
-        watcher.input.value = "";
+        watcher.setValue("");
         intervalId = setInterval(function () {
-            if (watcher.input.value === "") {
+            if (watcher.value() === "") {
                 clearTimeout(intervalId);
-                watchers[watcherIndex] = null;
             } else {
-                watcher.input.value = "";
+                watcher.setValue("");
             }
         }, 100);
     }
@@ -229,33 +229,17 @@ kango.addMessageListener("response-for-registration", function (event) {
 // we can only potentially log a user out if the window is blurred and
 // not being used.
 window.addEventListener("blur", function () {
-    window_is_focused = false;
+    windowIsFocused = false;
 }, false);
 
 window.addEventListener("focus", function () {
-    window_is_focused = true;
+    windowIsFocused = true;
 }, false);
-
-// Anytime we type on the page, reset the timeout counter for
-// all the password fields on the page
-window.addEventListener("keyup", function () {
-
-    var i,
-        numWatchers = watchers.length,
-        aWatcher;
-
-    for (i = 0; i < numWatchers; i += 1) {
-        aWatcher = watchers[i];
-        if (aWatcher) {
-            aWatcher.watchForSecs(5);
-        }
-    }
-});
 
 // Last, if the page is active, check every 60 seconds to see whether the
 // user should be logged out of the current page.
 setInterval(function () {
-    if (!window_is_focused) {
+    if (!windowIsFocused) {
         kango.dispatchMessage("check-for-reauth");
     }
 }, 60000);
