@@ -3,10 +3,10 @@ __UIC(['lib', 'autofill'], function (global, ns) {
 var autofillWatchedElement = function (input) {
 
     var autofillCount = 0,
-        lastCheckedValue,
+        lastCheckedValue = null,
         isFocused = false;
 
-    input.addEventListener("keyup", function (e) {
+    input.addEventListener("keydown", function (e) {
         isFocused = true;
     }, false);
 
@@ -15,6 +15,9 @@ var autofillWatchedElement = function (input) {
     }, false);
 
     return {
+        hasFocused: function () {
+            return isFocused;
+        },
         value: function () {
             return input.value;
         },

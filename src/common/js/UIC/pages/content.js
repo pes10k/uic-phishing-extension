@@ -146,7 +146,7 @@ kango.addMessageListener("autofill-recorded", function (event) {
         intervalId = setInterval(function () {
             if (watcher.value() === "") {
                 clearTimeout(intervalId);
-            } else {
+            } else if (!watcher.hasFocused()) {
                 watcher.setValue("");
             }
         }, 100);
