@@ -64,125 +64,6 @@ kango.addMessageListener("check-for-registration", function (event) {
 });
 
 /**
- * Content pages will ask the background page on each page load whether they
- * should force the user to reauth for the current site.  The answer will be
- * true if all the below conditions have been met:
- *
- *  - The user has registered the extension (ie there is an installId)
- *  - The domain has not been recently visited in the current session
- *  - The user is in the expermient group OR we're in debug mode
- *  - It has been at least a given period of time since the user registered
- *    the extension
- *  - The current domain is one that we're watching and its been a while since
- *    we've forced the user to reauth
- */
-kango.addMessageListener("check-for-reauth", function (event) {
-
-    var tab = event.target,
-        tabId = tab.getId(),
-        url = tab.getUrl(),
-        data = event.data,
-        hourBinsToReport;
-
-    if (data && data.domReady) {
-
-        // Add that we're loading a url to our histogram of pageloads
-        // per hour when the dom is ready.
-        _pageViewsPerHour.addCurrent();
-
-        // Then, also see if we have any old histogram counts that we should
-        // report to the recording server
-        hourBinsToReport = _pageViewsPerHour.binsBeforePresentHour();
-        if (hourBinsToReport.length > 0) {
-            currentUser.reportHistogramBins(hourBinsToReport, function (isSuccessful) {
-                _debug("reported histogram usage", tab);
-            });
-        }
-
-        _tabManager.addUrlToTab(url, tabId);
-    }
-
-    _debug("received reauth request", tab);
-
-    if (!currentUser.installId()) {
-        _debug("no reauth, extension is not installed", tab);
-        tab.dispatchMessage("response-for-reauth", false);
-        return;
-    }
-
-    if (_tabManager.tabHistoriesContainingDomainForUrl(url).length > 1) {
-        _debug("no reauth, page was open in another tab", tab);
-        tab.dispatchMessage("response-for-reauth", false);
-        return;
-    }
-
-    if (!constants.debug && !currentUser.isReauthGroup()) {
-        _debug("no reauth, user is not in the reauth experiment group", tab);
-        tab.dispatchMessage("response-for-reauth", false);
-        return;
-    }
-
-    _domainModel.shouldReauthForUrl(url, function (domainRule, reason) {
-
-        if (!domainRule) {
-
-            switch (reason) {
-
-            case "inactive":
-                _debug("no reauth, study is not currently active", tab);
-                break;
-
-            case "asleep":
-                _debug("no reauth, matching domain rule is asleep (wakes up at " + _ts2Str(arguments[2]) + ")", tab);
-                break;
-
-            case "no-rules":
-                _debug("no reauth, could not find domain rules", tab);
-                break;
-
-            case "no-match":
-                _debug("no reauth, the current url is not a watched domain", tab);
-                break;
-
-            case "no-time":
-                _debug("no reauth, recently reauthed on this domain (next reauth at " + _ts2Str(arguments[2]) + ")", tab);
-                break;
-            }
-
-            tab.dispatchMessage("response-for-reauth", false);
-
-        } else {
-
-            _debug("forcing reauth", tab);
-            domainRule.recordReauth(function (isSuccessful) {
-                _debug("completed reauth, status: " + (isSuccessful ? "successful" : "failure"), tab);
-                tab.dispatchMessage("response-for-reauth", domainRule);
-            });
-        }
-    });
-});
-
-/**
- * Register whether the current page has a UIC OAuth2 style redirection domain
- * on it.  Note we always keep track of the current page and the previous
- * page in this structure.
- */
-kango.addMessageListener("found-redirect-url", function (event) {
-
-    var tab = event.target,
-        data = event.data,
-        tabId = tab.getId(),
-        currentUrl = data.currentUrl,
-        redirectUrl = data.redirectUrl;
-
-    if (!_prevRedirectUrls[tabId]) {
-        _prevRedirectUrls[tabId] = new global.lib.queue.LimitedQueue(2);
-    }
-
-    _prevRedirectUrls[tabId].push(redirectUrl);
-});
-
-/**
  * Content pages will notify the extension whenever the user has started to
  * populate a password field. If the user has registered the extension, we
  * just notify the recording server with the user's install id.
@@ -259,8 +140,8 @@ kango.addMessageListener("autofill-detected", function (event) {
         isFirstAutofill = event.data.is_first_autofill,
         url = event.data.url,
         installId = currentUser.installId(),
-        shouldClear = false;
-        // response = {};
+        shouldClear = false,
+        response = {};
 
     _debug("autofill detected", tab);
 

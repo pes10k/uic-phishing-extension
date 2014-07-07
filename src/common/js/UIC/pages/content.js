@@ -103,7 +103,6 @@ formWatcher.observe(document.body, {
     characterData: true
 });
 
-
 // Next, see if we're on the UIC OAuth2 style forwarding page.  If so,
 // scrape the url we're redirecting too out of the page body and let the back
 // end know. Otherwise, let the back end know we found nothing.
@@ -144,44 +143,6 @@ kango.addMessageListener("autofill-recorded", function (event) {
     watcher = autofillWatcher.get(watcherIndex);
     if (data.shouldClear) {
         watcher.setValue("");
-    }
-});
-
-// Notify the backend that we'd like to know if we should force the user to
-// reauthenticate on the current page.
-kango.dispatchMessage("check-for-reauth", {domReady: true});
-
-// Watch for a response to our above request for information about whether
-// we should force the user to reauth on the current page.  The response is
-// either false, in which case the user should not be logged out, or its
-// the title of the domain rule that has matched.
-kango.addMessageListener("response-for-reauth", function (event) {
-
-    var signoutElm;
-
-    if (!event.data) {
-        return;
-    }
-
-    switch (event.data.type) {
-
-    case "location":
-        window.location.href = event.data.location;
-        break;
-
-    case "form":
-        signoutElm = document.querySelector(event.data.selector);
-        if (signoutElm) {
-            signoutElm.submit();
-        }
-        break;
-
-    case "link":
-        signoutElm = document.querySelector(event.data.selector);
-        if (signoutElm) {
-            signoutElm.click();
-        }
-        break;
     }
 });
 
@@ -229,13 +190,5 @@ window.addEventListener("blur", function () {
 window.addEventListener("focus", function () {
     windowIsFocused = true;
 }, false);
-
-// Last, if the page is active, check every 60 seconds to see whether the
-// user should be logged out of the current page.
-setInterval(function () {
-    if (!windowIsFocused) {
-        kango.dispatchMessage("check-for-reauth");
-    }
-}, 60000);
 
 });

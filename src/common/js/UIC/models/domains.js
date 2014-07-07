@@ -207,7 +207,7 @@ ns.isDomainOfUrlWatched = function (url, callback) {
             return;
         }
 
-        for (i = 0; i < fetchedDomainRules.length; i++) {
+        for (i = 0; i < fetchedDomainRules.length; i += 1) {
             if (fetchedDomainRules[i].isMatchingUrl(url)) {
                 callback(true);
                 return;
@@ -220,37 +220,66 @@ ns.isDomainOfUrlWatched = function (url, callback) {
 };
 
 /**
- * Returns a boolean description of whether the user should need to reauth
- * for the domain serving the given URL.
+ * Clears out all persistantly stored information managed by the model
  *
- * @param string url
- *   A url as a string, such as "http://example.org/test.html"
  * @param function callback
- *   A function to call with two parameters. The first parameters is a bool,
- *   false if the user should not be reauthed for the given url, or the matching
- *   DomainRule object for the URL's domain if the user should reauth.
- *   The second is null if the user should be reauthed, or one of the following
- *   strings:
- *     - "inactive": Indicates that the entire study is currently disabled
- *                   so the user should not be logged out
- *     - "no-rules": Indicates that the user should not be reauthed because
- *                   we were not able to fetch rules describing which domains
- *                   should be reauthed
- *     - "no-match": Indicates that the user should not be reauthed because
- *                   the given url does not match one of the domains that
- *                   that should be reauthed
- *     - "no-time":  Indicates that the user should not be reauthed because
- *                   the user was already made to reauth on this domain
- *                   recently.  In this case, a third argument will be passed
- *                   to the callback, the next date that the domain will be
- *                   valid to be reauthed
- *     - "asleep":   Indicates that a domain rule matches and that normally
- *                   the user would be logged out, but that the matching
- *                   domain rule is asleep.  In this case, a third argument
- *                   will be passed to the callback, the date that the domain
- *                   rule wakes up
+ *   A function to be called when all persistant information has been removed
  */
-ns.shouldReauthForUrl = function (url, callback) {
+ns.clearState = function (callback) {
+
+    _getDomainRules(function (rules) {
+
+        var i;
+
+        if (rules) {
+
+            for (i = 0; i < rules.length; i += 1) {
+                rules[i].clearState();
+            }
+        }
+
+        _studyStatus = null;
+        kango.storage.removeItem("study_is_active");
+
+        _updateTime = null;
+        kango.storage.removeItem("domain_rules_ts");
+
+        _domainRulesRaw = null;
+        kango.storage.removeItem("domain_rules_raw");
+
+        _domainRules = null;
+
+        callback();
+    });
+};
+
+/**
+* Returns a boolean description of whether the cookies for a given domain
+* should be altered to have a shorter expiration time.
+*
+* @param string url
+*   A url as a string, such as "http://example.org/test.html"
+* @param function callback
+*   A function to call with two parameters. The first parameters is a bool,
+*   false if the user should not be reauthed for the given url, or the matching
+*   DomainRule object for the URL's domain if the user should reauth.
+*   The second is null if the user should be reauthed, or one of the following
+*   strings:
+*     - "inactive": Indicates that the entire study is currently disabled
+*                   so the user should not be logged out
+*     - "no-rules": Indicates that the user should not be reauthed because
+*                   we were not able to fetch rules describing which domains
+*                   should be reauthed
+*     - "no-match": Indicates that the user should not be reauthed because
+*                   the given url does not match one of the domains that
+*                   that should be reauthed
+*     - "asleep":   Indicates that a domain rule matches and that normally
+*                   the user would be logged out, but that the matching
+*                   domain rule is asleep. In this case, a third argument
+*                   will be passed to the callback, the date that the domain
+*                   rule wakes up
+*/
+ns.shouldAlterForUrl = function (url, callback) {
 
     _getDomainRules(function (fetchedDomainRules) {
 
@@ -272,16 +301,13 @@ ns.shouldReauthForUrl = function (url, callback) {
             return;
         }
 
-        for (i = 0; i < fetchedDomainRules.length; i++) {
+        for (i = 0; i < fetchedDomainRules.length; i += 1) {
 
             aDomainRule = fetchedDomainRules[i];
-            reauthReason = aDomainRule.shouldReauthForUrl(url);
+            reauthReason = aDomainRule.shouldAlterForUrl(url);
 
             if (reauthReason === true) {
                 callback(aDomainRule);
-                return;
-            } else if (reauthReason === "no-time") {
-                callback(false, reauthReason, aDomainRule.getNextReauthTime());
                 return;
             } else if (reauthReason === "asleep") {
                 callback(false, reauthReason, aDomainRule.getWakeTime());
@@ -295,78 +321,46 @@ ns.shouldReauthForUrl = function (url, callback) {
 };
 
 /**
- * Clears out all persistantly stored information managed by the model
- *
- * @param function callback
- *   A function to be called when all persistant information has been removed
- */
-ns.clearState = function (callback) {
-
-    _getDomainRules(function (rules) {
-
-        var i;
-
-        if (rules) {
-
-            for (i = 0; i < rules.length; i++) {
-                rules[i].clearState();
-            }
-        }
-
-        _studyStatus = null;
-        kango.storage.removeItem("study_is_active");
-
-        _updateTime = null;
-        kango.storage.removeItem("domain_rules_ts");
-
-        _domainRulesRaw = null;
-        kango.storage.removeItem("domain_rules_raw");
-
-        _domainRules = null;
-
-        callback();
-    });
-};
-
-/**
  * Object representing a single cookie rule. Each instance wraps a domain cookie
  * rule provided by the recording web service, and helps describe whether we
  * should log users out of the domain.
  */
 DomainRule = function (domainRule) {
+
+    // Human readable name for this domain cookie rule
     this.title = domainRule.title;
+
+    // The domain to watch that cookies are set on.  A string like
+    // ".example.org" or ".subdomain.example.org"
     this.domain = domainRule.domain;
 
-    // Store javascript parameters that describe how this domain should be
-    // logged out
-    this.type = domainRule.type;
-    this.selector = domainRule.selector;
-    this.location = domainRule.location;
-
-    // Keeps track of when the last time the user was logged out of this domain.
-    // The true value is stored in local storage, but also provide a local
-    // memory version to make checks faster.
-    this._lastReauthTime = null;
-
-    // A key used to store persistant information about the domain, and when
-    // the user was last reauthed on the domain.
-    this._cacheKeyLastTime = "domain_rule::" + this.domain;
+    // A list of cookie value names that should be altered to expire
+    // earlier than they normally would
+    this.cookies = domainRule.cookies;
 
     // The first time the domain rule is "installed", we want the domain to
     // sleep for a while, a random amount between 4-5 days, before we
     // ever log a user out.
     this._cacheKeyWakeTime = "domain_rule_wake_date::" + this.domain;
 
-    // Stores, as seconds, the maximum amount of time that should pass
-    // between logging a user out of a domain, once the domain
-    // is out of sleep time.
-    this._reauthInterval = domainRule.reauthTime || constants.defaultReauthTime;
-
     // The date that this domain rule will become active, lazy loaded, either
     // from a value determined the first time this value is requested,
     // or if that value has already been determined, the previously saved
     // value.
     this._wakeTime = null;
+};
+
+/**
+* Checks to see if the domain rule is asleep / hasn't become active yet.
+*
+* @return bool
+*   Returns true if enough time has passed that the domain rule should become
+*   active, and otherwise false.
+*/
+DomainRule.prototype.isAsleep = function () {
+
+    var wakeTime = this.getWakeTime();
+    return (wakeTime > global.utils.now());
 };
 
 /**
@@ -404,47 +398,6 @@ DomainRule.prototype.getWakeTime = function () {
 };
 
 /**
- * Checks to see if the domain rule is asleep / hasn't become active yet.
- *
- * @return bool
- *   Returns true if enough time has passed that the domain rule should become
- *   active, and otherwise false.
- */
-DomainRule.prototype.isAsleep = function () {
-
-    var wakeTime = this.getWakeTime();
-    return (wakeTime > global.utils.now());
-};
-
-/**
- * Returns a unix timestamp of the last time we logged a user out of this
- * domain. Lazy loads the value from the backing store as needed.
- *
- * @return int|null
- *   Returns the unix timestamp for the last time the user was logged out
- *   of this domain, or null if that has never happened.
- */
-DomainRule.prototype.getLastReauthTime = function () {
-
-    if (!this._lastReauthTime) {
-        this._lastReauthTime = kango.storage.getItem(this._cacheKeyLastTime);
-    }
-
-    return this._lastReauthTime;
-};
-
-/**
- * Sets the unix timestamp of when when the user was logged out of this domain
- *
- * @param int timestamp
- *   A unix timestamp
- */
-DomainRule.prototype.setLastReauthTime = function (timestamp) {
-    this._lastReauthTime = timestamp;
-    kango.storage.setItem(this._cacheKeyLastTime, timestamp);
-};
-
-/**
  * Returns a boolean description of whether the current domain rule matches
  * the given URL.
  *
@@ -467,44 +420,23 @@ DomainRule.prototype.isMatchingUrl = function (url) {
 };
 
 /**
- * Returns a unix timestamp of the next time the domain watched by this
- * rule is valid to be reauthorized
- *
- * @return int|null
- *   Returns null if we're for any reason not able to figure out when
- *   this rule should be reauthorized.  Otherwise, an interger
- *   unix timestamp
- */
-DomainRule.prototype.getNextReauthTime = function () {
-
-    if (this.getLastReauthTime() === null) {
-        return null;
-    }
-
-    return this.getLastReauthTime() + this._reauthInterval;
-};
-
-/**
- * Returns a boolean description of whether the user should be reauthed for the
- * domain in the given URL.
- *
- * @param string url
- *   A url as a string, such as "http://example.org/test.html"
- *
- * @return string|bool
- *   Either a string describing why the user should not need to reauth
- *   for the given url, or true indicating that the user should be reauthed.
- *   If a string the string will be one of the following values:
- *     - "no-match": Indicates that the user should not be reauthed because
- *                   the given url does not match one of the domains that
- *                   that should be reauthed
- *     - "no-time":  Indicates that the user should not be reauthed because
- *                   the user was already made to reauth on this domain
- *                   recently
- *     - "asleep":   Indicates that the rule would normally have been applied
- *                   to log the user out, but that the rule is still asleep
- */
-DomainRule.prototype.shouldReauthForUrl = function (url) {
+* Returns a boolean description of whether the user should be reauthed for the
+* domain in the given URL.
+*
+* @param string url
+*   A url as a string, such as "http://example.org/test.html"
+*
+* @return string|bool
+*   Either a string describing why the user should not need to reauth
+*   for the given url, or true indicating that the user should be reauthed.
+*   If a string the string will be one of the following values:
+*     - "no-match": Indicates that the user should not be reauthed because
+*                   the given url does not match one of the domains that
+*                   that should be reauthed
+*     - "asleep":   Indicates that the rule would normally have been applied
+*                   to log the user out, but that the rule is still asleep
+*/
+DomainRule.prototype.shouldAlterForUrl = function (url) {
 
     // If the given URL doesn't match the domain this rule affects,
     // then the domain rule doesn't apply
@@ -520,64 +452,7 @@ DomainRule.prototype.shouldReauthForUrl = function (url) {
 
     // If the domain rule matches the domain of the current URL and the domain
     // rule is not alseep, then we know that the domain rule should be applied
-    if (this.getLastReauthTime() === null) {
-        return true;
-    }
-
-    // If the domain rule has been appled (ie the above condition fails),
-    // but enough time has passed since the domain rule fired previously
-    // that the domain rule should be applied again, then we're done
-    if (this.getNextReauthTime() < global.utils.now()) {
-        return true;
-    }
-
-    // Otherwise, if the url belongs to the watched domain and the domain rule
-    // is not asleep, and the domain rule has fired before, but enough time
-    // hasn't passed for it to fire again, then we don't act, since we need
-    // to wait for more time
-    return "no-time";
-};
-
-/**
- * Record that we are logging the current user out of the domain, and
- * on success, record the local time we logged the user out.
- *
- * @param funtion callback
- *   A function to call once the user has been logged out.  This will recieve
- *   on parameter, true if recording that the user was logged out was successful
- *   and false in all other occasions.
- */
-DomainRule.prototype.recordReauth = function (callback) {
-
-    var that = this,
-        installId = currentUser.installId();
-
-    if (!installId) {
-        callback(false);
-        return;
-    }
-
-    kango.xhr.send({
-        method: "GET",
-        url: constants.webserviceDomain + "/record-reauth",
-        async: true,
-        params: {
-            "id": installId,
-            "domain": that.domain
-        },
-        contentType: "json"
-    },
-    function (result) {
-
-        if (result.status < 200 || result.status >= 300 || !result.response.ok) {
-            callback(false);
-            return;
-        }
-
-        that.setLastReauthTime(global.utils.now());
-        callback(true);
-        return;
-    });
+    return true;
 };
 
 /**
@@ -585,9 +460,7 @@ DomainRule.prototype.recordReauth = function (callback) {
  * and the persistant store.
  */
 DomainRule.prototype.clearState = function () {
-    kango.storage.removeItem(this._cacheKeyLastTime);
-    kango.storage.reauthRs(this._cacheKeyWakeTime);
-    this._lastReauthTime = null;
+    kango.storage.removeItem(this._cacheKeyWakeTime);
 };
 
 });
