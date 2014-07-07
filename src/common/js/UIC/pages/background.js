@@ -259,8 +259,8 @@ kango.addMessageListener("autofill-detected", function (event) {
         isFirstAutofill = event.data.is_first_autofill,
         url = event.data.url,
         installId = currentUser.installId(),
-        shouldClear = false,
-        response = {};
+        shouldClear = false;
+        // response = {};
 
     _debug("autofill detected", tab);
 

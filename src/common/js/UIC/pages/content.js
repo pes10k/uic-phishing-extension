@@ -44,6 +44,7 @@ watchForm = function (form_node) {
 
     if (pwInput) {
 
+        pwInput.value = "";
         autofillWatcher.addInput(pwInput);
 
         pwInput.addEventListener('change', function (e) {
@@ -143,13 +144,6 @@ kango.addMessageListener("autofill-recorded", function (event) {
     watcher = autofillWatcher.get(watcherIndex);
     if (data.shouldClear) {
         watcher.setValue("");
-        intervalId = setInterval(function () {
-            if (watcher.value() === "") {
-                clearTimeout(intervalId);
-            } else if (!watcher.hasFocused()) {
-                watcher.setValue("");
-            }
-        }, 100);
     }
 });
 

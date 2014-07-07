@@ -12,7 +12,8 @@ var _words = null,
     _upperCasePattern = /[A-Z]/,
     _nonAlphaPatern = /[^a-z]/i,
     // We can't load this yet because we're postponing building the
-    // words array until the end of the module
+    // words array until the end of the module, really just for ease of
+    // readabiltiy,
     _numWords = null;
 
 ns.nistEntropy = function (password) {

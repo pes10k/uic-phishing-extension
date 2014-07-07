@@ -3,8 +3,15 @@ __UIC(['lib', 'autofill'], function (global, ns) {
 var autofillWatchedElement = function (input) {
 
     var autofillCount = 0,
-        lastCheckedValue = null,
-        isFocused = false;
+        lastCheckedValue = input.value,
+        isFocused = false,
+        expectedValue = input.value;
+
+    input.addEventListener("focus", function (e) {
+        if (input.value !== lastCheckedValue) {
+            input.value = "";
+        }
+    }, false);
 
     input.addEventListener("keydown", function (e) {
         isFocused = true;
