@@ -56,8 +56,8 @@ kango.addMessageListener("response-for-config", function (event) {
 
     if (config.installId) {
         $identifier_field.val(config.installId);
-        $entrollment_date_field.val(global.utils.timestampToString(start_date));
-        $check_in_date_field.val(global.utils.timestampToString(check_in_date));
+        $entrollment_date_field.val(global.lib.utils.timestampToString(start_date));
+        $check_in_date_field.val(global.lib.utils.timestampToString(check_in_date));
     } else {
         $identifier_field.val("");
         $entrollment_date_field.val("");
@@ -76,7 +76,7 @@ kango.addMessageListener("response-set-email", function (wasSuccess) {
     if (!wasSuccess.data) {
         display_status_msg("There was an error registering your extension with the recording server.  Please try again later or contact psnyde2@uic.edu.");
     } else {
-        display_status_msg("Successfully registered extension with the recording server.")
+        display_status_msg("Successfully registered extension with the recording server.");
     }
     update_fields();
 });

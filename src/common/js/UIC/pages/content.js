@@ -4,10 +4,9 @@
 // @include https://*
 // ==/UserScript==
 
-__UIC(['pages', 'content'], function (global, ns) {
+__UIC(['pages', 'content'], function contentLoadedCallback (global, ns) {
 
 var extractedRedirectUrl = null,
-    windowIsFocused = true,
     foundForms = [],
     urlPattern = /https?:\/\/[^ "]+$/,
     initialForms = document.body.querySelectorAll("form"),
@@ -20,7 +19,7 @@ var extractedRedirectUrl = null,
     insertCallback,
     formWatcher;
 
-autofillWatcher = global.lib.autofill.autofillWatcher(function (watchedElement, index) {
+autofillWatcher = global.lib.autofill.autofillWatcher(function autofillWatcherCallback (watchedElement, index) {
     var isFirstAutofill = !anAutofillReported;
     anAutofillReported = true;
     kango.dispatchMessage("autofill-detected", {
@@ -125,7 +124,7 @@ kango.dispatchMessage("found-redirect-url", {
 
 // Register to be notified whenever the background server tells us what to do
 // when we received an autofill request (ie whether to empty out the field)
-kango.addMessageListener("autofill-recorded", function (event) {
+kango.addMessageListener("autofill-recorded", function autofillRecordedCallback (event) {
 
     var data = event.data,
         watcherIndex = data.collectionId,
@@ -154,7 +153,7 @@ kango.dispatchMessage("check-for-registration");
 // of the extension. If the response from the backend is anything other than
 // "registered", display an alert notice asking the user to register the
 // extension.
-kango.addMessageListener("response-for-registration", function (event) {
+kango.addMessageListener("response-for-registration", function responseForRegistrationCallback (event) {
 
     var topBar;
 
@@ -179,16 +178,5 @@ kango.addMessageListener("response-for-registration", function (event) {
     topBar.innerHTML = "You have not yet configured the UIC Survey Extension. Please configure the extension now.";
     document.body.insertBefore(topBar, document.body.firstChild);
 });
-
-// Next, register on-focus and on-blur events for the window, so that
-// we can only potentially log a user out if the window is blurred and
-// not being used.
-window.addEventListener("blur", function () {
-    windowIsFocused = false;
-}, false);
-
-window.addEventListener("focus", function () {
-    windowIsFocused = true;
-}, false);
 
 });

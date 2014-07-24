@@ -1,3 +1,6 @@
 {
-    "id": "mmbeogipaokmplbgdhkgcfndbblgaokm"
+    "id": "mmbeogipaokmplbgdhkgcfndbblgaokm",
+    "background_scripts": [
+        "js/UIC/models/cookies.js"
+    ]
 }

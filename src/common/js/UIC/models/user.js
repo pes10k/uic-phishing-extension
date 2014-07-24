@@ -1,7 +1,7 @@
 __UIC(["models", "user"], function (global, ns) {
 
 var constants = global.constants,
-    _now = global.utils.now,
+    utils = global.lib.utils,
     _installId = null,
     _registrationTime = null,
     _checkInTime = null,
@@ -227,8 +227,8 @@ ns.registerUser = function (email, callback) {
             kango.storage.setItem("email", email);
             kango.storage.setItem("install_id", registerResult.response._id);
             kango.storage.setItem("group", registerResult.response.group);
-            kango.storage.setItem("registration_time", _now());
-            kango.storage.setItem("check_in_time", _now());
+            kango.storage.setItem("registration_time", utils.now());
+            kango.storage.setItem("check_in_time", utils.now());
             callback(true);
             return;
         });
@@ -252,7 +252,7 @@ ns.heartbeat = function (callback) {
         return;
     }
 
-    if ((this.checkInTime() + constants.heartbeatTime) >= _now()) {
+    if ((this.checkInTime() + constants.heartbeatTime) >= utils.now()) {
         callback(false);
         return;
     }
@@ -267,7 +267,7 @@ ns.heartbeat = function (callback) {
         contentType: "json"
     },
     function (result) {
-        _checkInTime = _now();
+        _checkInTime = utils.now();
         kango.storage.setItem("check_in_time", _checkInTime);
         callback((result.status >= 200 && result.status < 300));
     });
@@ -297,7 +297,7 @@ ns.recordAutofill = function (url, callback) {
         url: constants.webserviceDomain + "/password-autofilled",
         async: true,
         params: {
-            "domain": global.utils.extractDomain(url),
+            "domain": utils.extractDomain(url),
             "url": url,
             "id": installId
         },

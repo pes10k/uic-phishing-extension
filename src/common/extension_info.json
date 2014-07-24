@@ -1,6 +1,7 @@
 {
     "content_scripts": [
         "js/UIC.js",
+        "js/UIC/constants.js",
         "js/UIC/lib/autofill.js",
         "js/UIC/pages/content.js"
     ],
@@ -10,23 +11,24 @@
         "js/contrib/parse_uri.js",
         "js/contrib/sjcl.js",
         "js/UIC.js",
+        "js/UIC/constants.js",
+        "js/UIC/lib/utils.js",
         "js/UIC/lib/queue.js",
         "js/UIC/lib/nist.js",
         "js/UIC/lib/histogram.js",
-        "js/UIC/constants.js",
         "js/UIC/models/user.js",
-        "js/UIC/models/tabs.js",
         "js/UIC/models/domains.js",
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.13.13",
+    "version": "0.17.0",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "permissions": {
         "tabs": true,
         "content_scripts": ["http://*/*", "https://*/*"],
         "web_navigation": true,
-        "xhr": ["http://*/*", "https://*/*"]
+        "xhr": ["http://*/*", "https://*/*"],
+        "cookies": true
     }
 }

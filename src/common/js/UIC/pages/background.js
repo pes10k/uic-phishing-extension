@@ -3,6 +3,7 @@ __UIC(['pages', 'background'], function (global, ns) {
 var constants = global.constants,
     models = global.models,
     currentUser = models.user.getInstance(),
+    utils = global.lib.utils,
     _domainModel = models.domains.getInstance(),
     _pageViewsPerHour = global.lib.histogram.loadHourHistogramWithId("uic"),
     // Keep track of the previous UIC OAuth2 url we're directing to.
@@ -10,35 +11,7 @@ var constants = global.constants,
     // it means that the _previous page_ in this tab had a UIC OAuth2
     // url on it
     _prevRedirectUrls = {},
-    _tabManager = new models.tabs.TabsCollection(constants.pageHistoryTime),
-    _now = global.utils.now,
-    _ts2Str = global.utils.timestampToString,
-    _debug = function (msg, tab) {
-        var tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
-        if (constants.debug) {
-            kango.console.log(msg + tabDesc);
-        }
-    };
-
-/**
- * When ever a user opens a new tab, we need to add that tab to the tab
- * manager we use to track tab behavior
- */
-kango.browser.addEventListener(kango.browser.event.TAB_CREATED, function (event) {
-    _tabManager.addTab(event.tabId);
-});
-
-/**
- * Similarly, whenever a user closes a tab, we don't need to watch it anymore,
- * so remove it from the collection of watched / tracked tabs.
- */
-kango.browser.addEventListener(kango.browser.event.TAB_REMOVED, function (event) {
-
-    if (_prevRedirectUrls[event.tabId]) {
-        delete _prevRedirectUrls[event.tabId];
-    }
-    _tabManager.removeTab(event.tabId);
-});
+    _debug = utils.debug;
 
 /**
  * On each page load the the content page will ask the extension if the user
@@ -106,7 +79,7 @@ kango.addMessageListener("password-entered", function (event) {
             return;
         }
 
-        domain = global.utils.extractDomain(url);
+        domain = utils.extractDomain(url);
 
         _debug("password entered", tab);
 
@@ -219,10 +192,10 @@ kango.addMessageListener("request-set-email", function (event) {
 kango.addMessageListener("request-reset-config", function (event) {
 
     var tab = event.target;
-    currentUser.clearState();
     _domainModel.clearState(function () {
         tab.dispatchMessage("response-reset-config", true);
     });
+    currentUser.clearState();
 });
 
 });
