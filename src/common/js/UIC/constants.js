@@ -34,7 +34,7 @@ __UIC(['constants'], function constantsModuleLoaded (global, ns) {
     // heartbeat server to let the service know that the user is still active
     // Occurs every 10 minutes in debug mode, and every hour in
     // normal deployment
-    ns.heartbeatTime = ns.debug ? 600 : 3600;
+    ns.heartbeatTime = ns.debug ? 3600 : 3600;
 
     ns.version = kango.getExtensionInfo ? kango.getExtensionInfo().version : null;
 
