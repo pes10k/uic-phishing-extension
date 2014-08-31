@@ -1,6 +1,5 @@
 (function () {
 
-
     var prepareNamespace = function (parts) {
 
             var i,
@@ -45,4 +44,5 @@
 
         init(parts, callback);
     };
+
 }());

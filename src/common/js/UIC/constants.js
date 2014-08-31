@@ -13,6 +13,13 @@ __UIC(['constants'], function constantsModuleLoaded (global, ns) {
     // normal deployment
     ns.defaultReauthTime = ns.debug ? 86400 : 172800;
 
+    // In order to make detection of the shortend cookie / session length
+    // less predictable, some noise is added to the adjusted cookie lenght.
+    // The below values are the maximum amount of change / noise, in seconds
+    // that will be added to the above `defaultReauthTime`.  The actual
+    // value will be selected from (-ns.reauthTimeNoise, ns.reauthTimeNoise)
+    ns.reauthTimeNoise = ns.debug ? 360 : 43200;
+
     // How often we should update the domian rules, which we set to once a day
     // Occurs every 10 minutes in debug mode, and every 24 hours in
     // normal deployment

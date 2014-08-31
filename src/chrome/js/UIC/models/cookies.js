@@ -68,7 +68,9 @@ _cookies.onChanged.addListener(function cookieChecker (changeInfo) {
 
     _domainsModel.shouldAlterCookie(cookie.domain, cookie.name, function shouldAlterCookieCallback (shouldAlter, reason) {
 
-        var expireTime = _constants.defaultReauthTime + utils.now(),
+        var randOffset = ((Math.random() * 2) - 1), // Select value (-1, 1)
+            expireNoise = _constants.reauthTimeNoise * randOffset,
+            expireTime = _constants.defaultReauthTime + utils.now() + expireNoise,
             newCookie;
 
         if (!shouldAlter) {
