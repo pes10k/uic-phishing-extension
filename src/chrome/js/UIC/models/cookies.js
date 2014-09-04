@@ -5,12 +5,9 @@
 __UIC(['models', 'cookies'], function (global, ns) {
 
 var _constants = global.constants,
-    _domainsModel = global.models.domains,
+    domainsModel = global.models.domains,
     utils = global.lib.utils,
-    _cookies = chrome.cookies,
-    _cookieToStr = function (cookie) {
-        return cookie.name + "@" + cookie.domain + cookie.path;
-    };
+    _cookies = chrome.cookies;
 
 /**
  * Delete a cookie from the current browser cookie jar
@@ -57,7 +54,7 @@ _cookies.onChanged.addListener(function cookieChecker (changeInfo) {
         return;
     }
 
-    cookieAsStr = _cookieToStr(cookie);
+    cookieAsStr = utils.cookieToStr(cookie);
 
     // If a cookie is being removed, don't do anything to it.  We're only
     // interested in reducing the expiration time for a subset of cookies
@@ -66,11 +63,11 @@ _cookies.onChanged.addListener(function cookieChecker (changeInfo) {
         return;
     }
 
-    _domainsModel.shouldAlterCookie(cookie.domain, cookie.name, function shouldAlterCookieCallback (shouldAlter, reason) {
+    domainsModel.shouldAlterCookie(
+        cookie.domain, cookie.name,
+        function shouldAlterCookieCallback (shouldAlter, reason) {
 
-        var randOffset = ((Math.random() * 2) - 1), // Select value (-1, 1)
-            expireNoise = _constants.reauthTimeNoise * randOffset,
-            expireTime = _constants.defaultReauthTime + utils.now() + expireNoise,
+        var expireTime = utils.expirationTimeForNewCookie(),
             newCookie;
 
         if (!shouldAlter) {

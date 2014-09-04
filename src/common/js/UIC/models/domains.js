@@ -406,7 +406,7 @@ DomainRule.prototype.deleteCookies = function () {
     };
 
     if (kango.storage.getItem(this._cacheKeyDeletedCookies)) {
-        utils.debug("Not deleting exisitng cookies from " + this.domain);
+        utils.debug("Not deleting existing cookies from " + this.domain);
         return false;
     }
 
@@ -465,7 +465,7 @@ DomainRule.prototype.getWakeTime = function () {
     // should become active, calculate it now and store it persistantly.
     localWakeTime = utils.now();
     localWakeTime += constants.domainRuleWakeTimeMin;
-    localWakeTime += Math.floor(Math.random() * constants.domainRuleWakeTimeRange);
+    localWakeTime += Math.floor(Math.random() * constants.domainRuleWakeTimeNoise);
     this._wakeTime = localWakeTime;
     kango.storage.setItem(this._cacheKeyWakeTime, localWakeTime);
     return localWakeTime;

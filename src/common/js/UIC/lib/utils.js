@@ -31,15 +31,19 @@ ns.now = function () {
  */
 ns.debug = function (msg, tab) {
 
-    if (typeof msg === "object") {
-        kango.console.log(msg);
+    var tabDesc;
+
+    if (!constants.debug) {
         return;
     }
 
-    var tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
-    if (constants.debug) {
-        kango.console.log(msg + tabDesc);
+    if (typeof msg === "object") {
+        console.error(msg);
+        return;
     }
+
+    tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
+    console.error(msg + tabDesc);
 };
 
 /**
@@ -68,6 +72,22 @@ ns.extractDomain = function (url) {
 ns.timestampToString = function (timestamp) {
     var aDate = new Date(timestamp * 1000);
     return aDate.toLocaleDateString() + " " + aDate.toLocaleTimeString();
+};
+
+ns.cookieToStr = function (cookie) {
+    // Chrome uses ".domain" for handling the cookie's host, while firefox
+    // uses ".host"
+    var domain = cookie.domain || cookie.host;
+    return cookie.name + "@" + domain + cookie.path;
+};
+
+ns.expirationTimeForNewCookie = function () {
+
+    var randOffset = ((Math.random() * 2) - 1), // Select value (-1, 1)
+        expireNoise = constants.reauthTimeNoise * randOffset,
+        expireTime = constants.defaultReauthTime + ns.now() + expireNoise;
+
+    return expireTime;
 };
 
 });
