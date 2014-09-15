@@ -32,7 +32,7 @@ pack :
 restore :
 	Restoring the build dir to be all unpacked versions of javascript
 	@for SOURCE in `find tmp -name "*.js"`; do \
-		mv $$SOURCE `echo $$SOURCE | sed -E 's/^tmp\///g'`
+		mv $$SOURCE `echo $$SOURCE | sed -E 's/^tmp\///g'`; \
 	done
 
 all : clean
