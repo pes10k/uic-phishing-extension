@@ -1,0 +1,9 @@
+{
+    "name": "uic-phishing-extension-tools",
+    "version": "0.0.1",
+    "description": "Tools for building the UIC phishing extension",
+    "dependencies": {
+        "packer": "~0.0.5"
+    }
+}
+

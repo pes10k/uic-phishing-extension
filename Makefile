@@ -15,7 +15,19 @@ debug : all
 release : DEBUG = false
 release : EXT_NAME = release
 release : KANGO_FLAGS =
-release : all
+release : pack all restore
+
+pack :
+	@for JS in `find src -name "*.js" | grep -v contrib`; do \
+		cp $JS $JS.unpacked \
+		cat $JS | node bin/pack.js > $JS.packed \
+		mv $JS.packed $JS \
+	done
+
+restore :
+	# Restoring the build dir to be all unpacked versions of javascript
+	@find . -name "*.js.unpacked" | sed -E 's/\.unpacked//g' | xargs -J % cp %.unpacked %
+	@find . -name "*.js.unpacked" -exec rm {} \;
 
 all : clean
 	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}

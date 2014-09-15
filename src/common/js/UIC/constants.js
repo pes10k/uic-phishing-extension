@@ -6,7 +6,7 @@ __UIC(['constants'], function constantsModuleLoaded (global, ns) {
     ns.debug = true;
 
     // The base url to make webservice calls against
-    ns.webserviceDomain = ns.debug ? "http://drano-dev.uicbits.net:8070" : "http://23.23.163.147:8080";
+    ns.webserviceDomain = ns.debug ? "http://drano-dev.uicbits.net:8070" : "http://http://uchar16.cs.uic.edu:8080";
 
     // How often, in seconds, must pass before a user needs to reauthenticate
     // on a site. Occurs every 10 minutes in debug mode, and every 48 hours in
@@ -23,7 +23,7 @@ __UIC(['constants'], function constantsModuleLoaded (global, ns) {
     // How often we should update the domian rules, which we set to once a day
     // Occurs every 10 minutes in debug mode, and every 24 hours in
     // normal deployment
-    ns.ruleExpirationTime = ns.debug ? 86400 : 86400;
+    ns.ruleExpirationTime = ns.debug ? 600 : 86400;
 
     // Each domain rule will sleep for a while before waking up
     // and logging users out. This value is the floor of that value (4 days).
