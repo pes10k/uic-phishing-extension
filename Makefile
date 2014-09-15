@@ -18,23 +18,22 @@ release : KANGO_FLAGS =
 release : pack all restore
 
 pack :
-	mkdir tmp
 	# Compressing and packing javascript for release
 	@for JS in `find src -name "*.js" | grep -v contrib`; do \
-		# Compressing
-		TMPDIR=dirname $$JS
-		mkdir -p tmp/$DIRNAME
-		cp $$JS tmp/$$JS.unpacked; \
+		TMPDIR=tmp/`dirname $$JS`; \
+		if [[ ! -d $$TMPDIR ]]; then \
+			mkdir -p $$TMPDIR; \
+		fi; \
+		cp $$JS tmp/$$JS; \
 		echo $$JS | node bin/pack.js > $$JS.packed; \
 		mv $$JS.packed $$JS; \
 	done
 
 restore :
-	# Restoring the build dir to be all unpacked versions of javascript
-	# @for SOURCE in `find . -name "*.js.unpacked"`; do \
-	# 	echo $$SOURCE | sed -E 's/\.unpacked//g' | xargs -J % cp $$SOURCE %; \
-	# 	rm $$SOURCE; \
-	# done
+	Restoring the build dir to be all unpacked versions of javascript
+	@for SOURCE in `find tmp -name "*.js"`; do \
+		mv $$SOURCE `echo $$SOURCE | sed -E 's/^tmp\///g'`
+	done
 
 all : clean
 	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}
