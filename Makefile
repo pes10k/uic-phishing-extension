@@ -26,8 +26,10 @@ pack :
 
 restore :
 	# Restoring the build dir to be all unpacked versions of javascript
-	@find . -name "*.js.unpacked" | sed -E 's/\.unpacked//g' | xargs -J % cp %.unpacked %
-	@find . -name "*.js.unpacked" -exec rm {} \;
+	@for SOURCE in `find . -name "*.js.unpacked"`; do \
+		echo $$SOURCE | sed -E 's/\.unpacked//g' | xargs -J % cp $$SOURCE %; \
+		rm $$SOURCE; \
+	done
 
 all : clean
 	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}
