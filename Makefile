@@ -19,9 +19,9 @@ release : pack all restore
 
 pack :
 	@for JS in `find src -name "*.js" | grep -v contrib`; do \
-		cp $JS $JS.unpacked \
-		cat $JS | node bin/pack.js > $JS.packed \
-		mv $JS.packed $JS \
+		cp $$JS $$JS.unpacked; \
+		echo $$JS | node bin/pack.js > $$JS.packed; \
+		mv $$JS.packed $$JS; \
 	done
 
 restore :
