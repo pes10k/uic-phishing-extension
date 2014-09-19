@@ -5,7 +5,7 @@ TMP_CONSTANTS = constants.js.tmp
 debug : DEBUG = true
 debug : EXT_NAME = debug
 debug : KANGO_FLAGS =
-debug : all
+debug : flag all restore
 	# Unpacking chrome development version
 	@mkdir ${BUILD_DIR}/chrome-unpacked
 	@dd if=`ls ${BUILD_DIR}/*.crx` of=/tmp/uic-extension.zip bs=1 skip=306 2> /dev/null
@@ -15,7 +15,12 @@ debug : all
 release : DEBUG = false
 release : EXT_NAME = release
 release : KANGO_FLAGS =
-release : pack all restore
+release : flag pack all restore
+
+flag :
+	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}
+	@cp ${CONST_FILE} ${TMP_CONSTANTS}
+	@sed -i '' -E 's/ns\.debug = (false|true);/ns.debug = ${DEBUG};/' ${CONST_FILE}
 
 pack :
 	# Compressing and packing javascript for release
@@ -33,12 +38,13 @@ restore :
 	# Restoring the build dir to be all unpacked versions of javascript
 	@for SOURCE in `find tmp -name "*.js"`; do \
 		mv $$SOURCE `echo $$SOURCE | sed -E 's/^tmp\///g'`; \
-	done
+	done; \
+	rm -Rf tmp;
+
+	# Restoring the build tree to its previous state
+	@mv ${TMP_CONSTANTS} ${CONST_FILE}
 
 all : clean
-	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}
-	@cp ${CONST_FILE} ${TMP_CONSTANTS}
-	@sed -i '' -E 's/ns\.debug = (false|true);/ns.debug = ${DEBUG};/' ${CONST_FILE}
 
 	# Building kango extension
 	@python kango/kango.py build ${KANGO_FLAGS} . > /dev/null
@@ -51,10 +57,6 @@ all : clean
 		mv ${BUILD_DIR}/$$A_FILE ${BUILD_DIR}/`echo $$A_FILE | sed -E 's/\.(crx|xpi)/_${EXT_NAME}.\1/'`; \
 	done
 
-	# Restoring the build tree to its previous state
-	@mv ${TMP_CONSTANTS} ${CONST_FILE}
-
 clean :
 	# Cleaning the build directory
 	@rm -Rf ${BUILD_DIR}/*
-

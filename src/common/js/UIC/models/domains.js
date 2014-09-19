@@ -98,7 +98,6 @@ _getParsedDomainRules = function () {
     for (i in locallyFetchedDomainRules) {
         aRawRule = locallyFetchedDomainRules[i];
         aParsedRule = new DomainRule(aRawRule);
-        aParsedRule.deleteCookies();
         _domainRules.push(aParsedRule);
     }
 
@@ -349,9 +348,14 @@ DomainRule = function (domainRule) {
     // ".example.org" or ".subdomain.example.org"
     this.domain = domainRule.domain;
 
+    // A list of names of cookies that are session cookies, which need to
+    // be manually cleared out whenever one of the watched standard-expiration
+    // cookies are deleted.
+    this.session_cookies = domainRule.session || [];
+
     // A list of cookie value names that should be altered to expire
     // earlier than they normally would.  Cookie values here are sets of
-    // values, in the form [domain, path, isSecure]
+    // values, in the form [name, path, isSecure]
     this.cookies = domainRule.cookies;
 
     // The first time the domain rule is "installed", we want the domain to
