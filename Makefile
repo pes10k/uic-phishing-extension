@@ -1,6 +1,6 @@
 BUILD_DIR = output
 EXT_INFO_FILE = src/common/extension_info.json
-EXT_INFO_FILE_TMP = src/common/extension_info.json.tmp
+EXT_INFO_FILE_TMP = extension_info.json.tmp
 CONST_FILE = src/common/js/UIC/constants.js
 TMP_CONSTANTS = constants.js.tmp
 
@@ -17,20 +17,20 @@ debug : flag all restore
 release : DEBUG = false
 release : EXT_NAME = release
 release : KANGO_FLAGS =
-release : flag pack all restore
+release : flag flag-ext-info pack all restore
 
 flag :
 	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}
 	@cp ${CONST_FILE} ${TMP_CONSTANTS}
 	@sed -i '' -E 's/ns\.debug = (false|true);/ns.debug = ${DEBUG};/' ${CONST_FILE}
 
-	ifeq (${DEBUG}, false)
-		# If we're in release mode, also strip the browser button out of the
-		# build, since this exposes functionality we don't want end users
-		# to see
-		@cp ${EXT_INFO_FILE} ${EXT_INFO_FILE_TMP}
-		@sed -i '' -E 's/"browser_button":.*//' ${EXT_INFO_FILE}
-	endif
+	@cp ${EXT_INFO_FILE} ${EXT_INFO_FILE_TMP}
+
+flag-ext-info :
+	# If we're in release mode, also strip the browser button out of the
+	# build, since this exposes functionality we don't want end users
+	# to see
+	@sed -i '' -E 's/"browser_button":.*//' ${EXT_INFO_FILE}
 
 pack :
 	# Compressing and packing javascript for release
@@ -53,10 +53,7 @@ restore :
 
 	# Restoring the build tree to its previous state
 	@mv ${TMP_CONSTANTS} ${CONST_FILE}
-
-	ifeq (${DEBUG}, false)
-		@mv ${EXT_INFO_FILE_TMP} ${EXT_INFO_FILE}
-	endif
+	@mv ${EXT_INFO_FILE_TMP} ${EXT_INFO_FILE}
 
 all : clean
 
