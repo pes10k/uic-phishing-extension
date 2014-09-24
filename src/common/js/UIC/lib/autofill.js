@@ -1,4 +1,4 @@
-__UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
+UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
 
 var autofillWatchedElement = function (input) {
 

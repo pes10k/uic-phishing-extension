@@ -32,7 +32,7 @@
             callback(window.__UIC, ns);
         };
 
-    __UIC = window.__UIC = function (parts, callback) {
+    var UIC = window.UIC = function (parts, callback) {
 
         var date = new Date();
 

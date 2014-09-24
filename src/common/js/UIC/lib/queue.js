@@ -1,4 +1,4 @@
-__UIC(['lib', 'queue'], function (global, ns) {
+UIC(['lib', 'queue'], function (global, ns) {
 
 /**
  * Implements a very simple LIFO queue of a fixed size, so that if you

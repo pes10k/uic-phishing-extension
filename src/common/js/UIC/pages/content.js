@@ -4,7 +4,7 @@
 // @include https://*
 // ==/UserScript==
 
-__UIC(['pages', 'content'], function contentLoadedCallback (global, ns) {
+UIC(['pages', 'content'], function contentLoadedCallback (global, ns) {
 
 var extractedRedirectUrl = null,
     foundForms = [],

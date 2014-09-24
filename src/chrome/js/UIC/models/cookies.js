@@ -2,12 +2,11 @@
  * Track when cookies are set for the domains we care about, and handle deleting
  * or altering cookies when needed.
  */
-__UIC(['models', 'cookies'], function (global, ns) {
+UIC(['models', 'cookies'], function (global, ns) {
 
-var _constants = global.constants,
-    domainsModel = global.models.domains,
+var domainsModel = global.models.domains,
     utils = global.lib.utils,
-    _cookies = chrome.cookies;
+    cookies = chrome.cookies;
 
 /**
  * Delete a cookie from the current browser cookie jar
@@ -28,12 +27,50 @@ ns['delete'] = function (url, name, callback) {
     };
 
     if (!callback) {
-        _cookies.remove(cookieDetails);
+        cookies.remove(cookieDetails);
         return;
     }
 
-    _cookies.remove(cookieDetails, function chromeCookieDeleteCallback (details) {
+    cookies.remove(cookieDetails, function chromeCookieDeleteCallback (details) {
         callback(url, name, !!details, (details === null ? chrome.runtime.lastError : null));
+    });
+};
+
+/**
+ * Returns an array of all cookies being watched that apply to the given url.
+ *
+ * @param string url
+ *   A fully formed url, such as http://example.org/resource
+ * @param function callback
+ *   A function to call once we have an answer for how many cookies
+ *   have been set in the client that apply to the given url.  The function
+ *   is called with a single argument, an array of zero or more pairs of values,
+ *   with the first being the "url" of the cookie (ie domain + path), and the
+ *   second being the cookies name.
+ */
+ns.cookiesForUrl = function (url, callback) {
+
+    var domain = utils.extractDomain(url),
+        path = utils.extractPath(url);
+
+    utils.debug("Searching for cookies with domain=" + domain);
+
+    var query = {
+        url: url
+    };
+
+    cookies.getAll(query, function cookiesForUrlCallback (cookies) {
+
+        var shortCookies = cookies.map(function cookiesMap (cookie) {
+            return [cookie.domain + cookie.path, cookie.name];
+        });
+
+        domainsModel.filterWatchedCookies(
+            shortCookies,
+            function filterWatchedCookiesCallback (watchedCookies) {
+                callback(watchedCookies);
+            }
+        );
     });
 };
 
@@ -43,7 +80,7 @@ ns['delete'] = function (url, name, callback) {
  * to be whatever is set in the constants file (ie something much shorter
  * that what the host is specifying).
 */
-_cookies.onChanged.addListener(function cookieChecker (changeInfo) {
+cookies.onChanged.addListener(function cookieChecker (changeInfo) {
 
     var removed = changeInfo.removed,
         cookie = changeInfo.cookie,
@@ -99,7 +136,7 @@ _cookies.onChanged.addListener(function cookieChecker (changeInfo) {
             newCookie['domain'] = cookie.domain;
         }
 
-        _cookies.set(newCookie);
+        cookies.set(newCookie);
     });
 });
 

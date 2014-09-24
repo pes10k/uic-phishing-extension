@@ -1,4 +1,4 @@
-__UIC(["lib", "histogram"], function (global, ns) {
+UIC(["lib", "histogram"], function (global, ns) {
 
 var Histogram,
     HourHistogram;

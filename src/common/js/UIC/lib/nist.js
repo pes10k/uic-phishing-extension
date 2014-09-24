@@ -1,4 +1,4 @@
-__UIC(['lib', 'nist'], function (global, ns) {
+UIC(['lib', 'nist'], function (global, ns) {
 
 /**
  * Module used to evaluate the NIST entropy score for a given password.
@@ -9,12 +9,12 @@ __UIC(['lib', 'nist'], function (global, ns) {
 
 // Populated at the bottom of the module, for readibility.
 var _words = null,
-    _upperCasePattern = /[A-Z]/,
-    _nonAlphaPatern = /[^a-z]/i,
+    upperCasePattern = /[A-Z]/,
+    nonAlphaPatern = /[^a-z]/i,
     // We can't load this yet because we're postponing building the
     // words array until the end of the module, really just for ease of
     // readabiltiy,
-    _numWords = null;
+    numWords = null;
 
 ns.nistEntropy = function (password) {
 
@@ -51,14 +51,14 @@ ns.nistEntropy = function (password) {
 
     // If there are both uppercase characters and non-alpha characters
     // in the password, add 6 more bits
-    if (_upperCasePattern.exec(password) && _nonAlphaPatern.exec(password)) {
+    if (upperCasePattern.exec(password) && nonAlphaPatern.exec(password)) {
         entropy += 60;
     }
 
     // Last, if ther password is between 1 and 19 characters, and there are
     // no dictionary words in it, add another 6 bits
     if (pwLength > 0 && pwLength < 20) {
-        for (i = 0; i < _numWords; i += 1) {
+        for (i = 0; i < numWords; i += 1) {
             curWord = _words[i];
             if (passwordNorm.indexOf(curWord) !== -1) {
                 wordMatch = true;

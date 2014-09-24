@@ -1,201 +1,261 @@
-__UIC(['pages', 'background'], function (global, ns) {
+UIC(['pages', 'background'], function (global, ns) {
 
-var constants = global.constants,
-    models = global.models,
-    currentUser = models.user.getInstance(),
-    utils = global.lib.utils,
-    _domainModel = models.domains.getInstance(),
-    _pageViewsPerHour = global.lib.histogram.loadHourHistogramWithId("uic"),
-    // Keep track of the previous UIC OAuth2 url we're directing to.
-    // If there is an entry in this object for a given tab id,
-    // it means that the _previous page_ in this tab had a UIC OAuth2
-    // url on it
-    _prevRedirectUrls = {},
-    _debug = utils.debug;
+    var constants = global.constants,
+        models = global.models,
+        currentUser = models.user.getInstance(),
+        utils = global.lib.utils,
+        domainModel = models.domains.getInstance(),
+        // Keep track of the previous UIC OAuth2 url we're directing to.
+        // If there is an entry in this object for a given tab id,
+        // it means that the _previous page_ in this tab had a UIC OAuth2
+        // url on it
+        prevRedirectUrls = {},
+        debug = utils.debug;
 
-/**
- * On each page load the the content page will ask the extension if the user
- * has registred the extension.
- *
- * If so, heartbeat ping back to the recording server if needed. Reply to
- * the content page with "registered"
- *
- * If not, send a message back to the content page instructing it to display
- * the "you have not registered yet" message.  Reply to the content page
- * with "alert"
- */
-kango.addMessageListener("check-for-registration", function (event) {
+    /**
+     * On each page load the the content page will ask the extension if the user
+     * has registred the extension.
+     *
+     * If so, heartbeat ping back to the recording server if needed. Reply to
+     * the content page with "registered"
+     *
+     * If not, send a message back to the content page instructing it to display
+     * the "you have not registered yet" message.  Reply to the content page
+     * with "alert"
+     */
+    kango.addMessageListener("check-for-registration", function (event) {
 
-    var tab = event.target;
+        var tab = event.target;
 
-    if (!currentUser.installId()) {
-        tab.dispatchMessage("response-for-registration", "alert");
-    } else {
-        currentUser.heartbeat(function () {});
-        tab.dispatchMessage("response-for-registration", "registered");
-    }
-});
+        if (!currentUser.installId()) {
+            tab.dispatchMessage("response-for-registration", "alert");
+        } else {
+            currentUser.heartbeat(function () {});
+            tab.dispatchMessage("response-for-registration", "registered");
+        }
+    });
 
-/**
- * Content pages will notify the extension whenever the user has started to
- * populate a password field. If the user has registered the extension, we
- * just notify the recording server with the user's install id.
- */
-kango.addMessageListener("password-entered", function (event) {
+    /**
+     * Register whether the current page has a UIC OAuth2 style redirection domain
+     * on it.  Note we always keep track of the current page and the previous
+     * page in this structure.
+     */
+    kango.addMessageListener("found-redirect-url", function (event) {
 
-    var tab = event.target,
-        data = event.data,
-        tabId = tab.getId(),
-        password = data.password,
-        url = null,
-        redirectUrlQueue = _prevRedirectUrls[tabId],
-        installId = currentUser.installId();
+        var tab = event.target,
+            data = event.data,
+            tabId = tab.getId(),
+            currentUrl = data.currentUrl,
+            redirectUrl = data.redirectUrl;
 
-    if (!installId) {
-        return;
-    }
+        if (!_prevRedirectUrls[tabId]) {
+            _prevRedirectUrls[tabId] = new global.lib.queue.LimitedQueue(2);
+        }
 
-    // We need to check for a single special case when determining what
-    // domain / url, etc. we thing the entered password is for.
-    // If 1) the current page we're on is the UIC OAuth2 redirection flow,
-    // and 2 the previous page the current tab visited had a redirection
-    // URL on it, use that URL (the redirection url) instead of the tab's
-    // current URL
+        _prevRedirectUrls[tabId].push(redirectUrl);
+    });
 
-    if (data.url.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0 &&
-        redirectUrlQueue && redirectUrlQueue.length === 2 && redirectUrlQueue.peek(-1)) {
-        url = redirectUrlQueue.peek(-1);
-    } else {
-        url = data.url;
-    }
 
-    // If the study isn't active, don't do anything with the entered password
-    _domainModel.isStudyActive(function (isStudyActive) {
+    /**
+     * Content pages will notify the extension whenever the user has started to
+     * populate a password field. If the user has registered the extension, we
+     * just notify the recording server with the user's install id.
+     */
+    kango.addMessageListener("password-entered", function (event) {
 
-        var domain = null;
+        var tab = event.target,
+            data = event.data,
+            tabId = tab.getId(),
+            password = data.password,
+            url = null,
+            redirectUrlQueue = prevRedirectUrls[tabId],
+            installId = currentUser.installId();
 
-        if (!isStudyActive) {
-            _debug("password entered, but study is inactive", tab);
+        if (!installId) {
             return;
         }
 
-        domain = utils.extractDomain(url);
+        // We need to check for a single special case when determining what
+        // domain / url, etc. we thing the entered password is for.
+        // If 1) the current page we're on is the UIC OAuth2 redirection flow,
+        // and 2 the previous page the current tab visited had a redirection
+        // URL on it, use that URL (the redirection url) instead of the tab's
+        // current URL
 
-        _debug("password entered", tab);
+        if (data.url.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0 &&
+            redirectUrlQueue && redirectUrlQueue.length === 2 && redirectUrlQueue.peek(-1)) {
+            url = redirectUrlQueue.peek(-1);
+        } else {
+            url = data.url;
+        }
 
-        kango.xhr.send({
-            method: "GET",
-            url: constants.webserviceDomain + "/password-entered",
-            async: true,
-            params: {
-                "domain": domain,
-                "url": url,
-                "pw_hash": currentUser.blindValue(password),
-                "pw_strength": global.lib.nist.nistEntropy(password),
-                "id": installId
+        // If the study isn't active, don't do anything with the entered password
+        domainModel.isStudyActive(function (isStudyActive) {
+
+            var domain = null;
+
+            if (!isStudyActive) {
+                debug("password entered, but study is inactive", tab);
+                return;
+            }
+
+            domain = utils.extractDomain(url);
+
+            debug("password entered", tab);
+
+            kango.xhr.send({
+                method: "GET",
+                url: constants.webserviceDomain + "/password-entered",
+                async: true,
+                params: {
+                    "domain": domain,
+                    "url": url,
+                    "pw_hash": currentUser.blindValue(password),
+                    "pw_strength": global.lib.nist.nistEntropy(password),
+                    "id": installId
+                },
+                contentType: "json"
             },
-            contentType: "json"
-        },
-        function (result) {});
+            function (result) {});
+        });
     });
-});
 
-/**
- * Listen for messages from content pages indicating that a password field
- * was autocompleted. If it was, and we're either in debug mode or the
- * "autofill" experiment-group, instruct the content page to clear the field
- * out.  Eitherway, report the password autofill event.
- */
-kango.addMessageListener("autofill-detected", function (event) {
+    /**
+     * Listen for messages from content pages indicating that a password field
+     * was autocompleted. If it was, and we're either in debug mode or the
+     * "autofill" experiment-group, instruct the content page to clear the field
+     * out.  Eitherway, report the password autofill event.
+     */
+    kango.addMessageListener("autofill-detected", function (event) {
 
-    var tab = event.target,
-        watcherIndex = event.data.watcher_index,
-        isFirstAutofill = event.data.is_first_autofill,
-        url = event.data.url,
-        installId = currentUser.installId(),
-        shouldClear = false,
-        response = {};
+        var tab = event.target,
+            watcherIndex = event.data.watcher_index,
+            isFirstAutofill = event.data.is_first_autofill,
+            url = event.data.url,
+            installId = currentUser.installId(),
+            shouldClear = false,
+            response = {};
 
-    _debug("autofill detected", tab);
+        debug("autofill detected", tab);
 
-    if (!installId) {
+        if (!installId) {
 
-        _debug("ignoring because extension is not configured");
-        watcherIndex = null;
+            debug("ignoring because extension is not configured");
+            watcherIndex = null;
 
-    } else {
+        } else {
 
-        shouldClear = constants.debug || currentUser.isAutoFillGroup();
+            shouldClear = constants.debug || currentUser.isAutoFillGroup();
 
-        // Only record at most one autofill event, per page, per element
-        if (isFirstAutofill) {
-            currentUser.recordAutofill(url, function (wasSuccess) {
-                if (wasSuccess) {
-                    _debug("autofill was recorded successfully", tab);
-                } else {
-                    _debug("error occurred when recording autofill event", tab);
-                }
-            });
+            // Only record at most one autofill event, per page, per element
+            if (isFirstAutofill) {
+                currentUser.recordAutofill(url, function (wasSuccess) {
+                    if (wasSuccess) {
+                        debug("autofill was recorded successfully", tab);
+                    } else {
+                        debug("error occurred when recording autofill event", tab);
+                    }
+                });
+            }
         }
-    }
 
-    if (shouldClear) {
-        _debug("password field should be cleared", tab);
-    } else {
-        _debug("password field should not be cleared", tab);
-    }
-
-    response.collectionId = watcherIndex;
-    response.shouldClear = shouldClear;
-    tab.dispatchMessage("autofill-recorded", response);
-});
-
-/**
- * For the configuration page, listen for requests to fetch, set, and clear
- * the current extension configuration.
- */
-kango.addMessageListener("request-for-config", function (event) {
-
-    var configuration = {},
-        tab = event.target,
-        key;
-
-    _debug("received request for config");
-
-    configuration.installId = currentUser.installId();
-    configuration.registrationTime = currentUser.registrationTime();
-    configuration.checkInTime = currentUser.checkInTime();
-    configuration.email = currentUser.email();
-
-    if (currentUser.installId()) {
-        _debug("found config information for extension.");
-        for (key in configuration) {
-            _debug(" - " + key + ": " + configuration[key]);
+        if (shouldClear) {
+            debug("password field should be cleared", tab);
+        } else {
+            debug("password field should not be cleared", tab);
         }
-    } else {
-        _debug("no config info for extension found.");
+
+        response.collectionId = watcherIndex;
+        response.shouldClear = shouldClear;
+        tab.dispatchMessage("autofill-recorded", response);
+    });
+
+    // If we're in debug mode, we want to add a button that allows the tester
+    // to delete any watched / manipulated cookies for the current page / domain
+    if (constants.debug) {
+
+        // Set the a "*" note whenever we visit a page that sets one or more
+        // cookies that we watch.  Otherwise, the browser button appears un-adorned.
+        // For further debugging help, also set the tooltip for the browser button
+        // to be a description (ie cookie-name@cookie-url) of each cookie watched
+        // on the current page.
+        kango.browser.addEventListener(
+            kango.browser.event.TAB_CHANGED,
+            function (event) {
+                var currentUrl = event.url;
+                models.cookies.getInstance().cookiesForUrl(
+                    currentUrl,
+                    function cookiesForUrlCallback (cookies) {
+                        var prettyCookies = cookies.map(function (cookie) {
+                            var cookieUrl = cookie[0],
+                                cookieName = cookie[1];
+                            return cookieName + "@" + cookieUrl;
+                        });
+
+                        kango.ui.browserButton.setBadgeValue(cookies.length);
+                        kango.ui.browserButton.setTooltipText(prettyCookies.join("\n"));
+                    }
+                );
+            }
+        );
+
+        kango.ui.browserButton.addEventListener(
+            kango.ui.browserButton.event.COMMAND,
+            function (event) {
+                var currentUrl = event.url;
+                // var currentUrl = event.data.url;
+
+                // kango.console.log('Button clicked!');
+            }
+        );
     }
 
-    tab.dispatchMessage("response-for-config", configuration);
-});
+    /**
+     * For the configuration page, listen for requests to fetch, set, and clear
+     * the current extension configuration.
+     */
+    kango.addMessageListener("request-for-config", function (event) {
 
-kango.addMessageListener("request-set-email", function (event) {
+        var configuration = {},
+            tab = event.target,
+            key;
 
-    var tab = event.target,
-        email = event.data;
+        debug("received request for config");
 
-    currentUser.registerUser(email, function (wasSuccess) {
-        tab.dispatchMessage("response-set-email", wasSuccess);
+        configuration.installId = currentUser.installId();
+        configuration.registrationTime = currentUser.registrationTime();
+        configuration.checkInTime = currentUser.checkInTime();
+        configuration.email = currentUser.email();
+
+        if (currentUser.installId()) {
+            debug("found config information for extension.");
+            for (key in configuration) {
+                debug(" - " + key + ": " + configuration[key]);
+            }
+        } else {
+            debug("no config info for extension found.");
+        }
+
+        tab.dispatchMessage("response-for-config", configuration);
     });
-});
 
-kango.addMessageListener("request-reset-config", function (event) {
+    kango.addMessageListener("request-set-email", function (event) {
 
-    var tab = event.target;
-    _domainModel.clearState(function () {
-        tab.dispatchMessage("response-reset-config", true);
+        var tab = event.target,
+            email = event.data;
+
+        currentUser.registerUser(email, function (wasSuccess) {
+            tab.dispatchMessage("response-set-email", wasSuccess);
+        });
     });
-    currentUser.clearState();
-});
+
+    kango.addMessageListener("request-reset-config", function (event) {
+
+        var tab = event.target;
+        domainModel.clearState(function () {
+            tab.dispatchMessage("response-reset-config", true);
+        });
+        currentUser.clearState();
+    });
 
 });

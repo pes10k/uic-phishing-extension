@@ -2,7 +2,7 @@
  * Various misc utitily that are useful though out the extension, but
  * don't fall neatly into a single model etc.
  */
-__UIC(['lib', 'utils'], function (global, ns) {
+UIC(['lib', 'utils'], function (global, ns) {
 
 var constants = global.constants;
 
@@ -57,6 +57,19 @@ ns.debug = function (msg, tab) {
  */
 ns.extractDomain = function (url) {
     return parseUri(url)['host'];
+};
+
+/**
+ * Returns the path part of a given url string.
+ *
+ * @param string url
+ *   A proper url (ex http://example.org/index.html)
+ *
+ * @return string
+ *   The domain portion of the given url (ex "/index.html")
+ */
+ns.extractPath = function (url) {
+    return parseUri(url)['path'];
 };
 
 /**

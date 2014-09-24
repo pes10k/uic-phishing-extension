@@ -1,4 +1,4 @@
-__UIC(['constants'], function constantsModuleLoaded (global, ns) {
+UIC(['constants'], function constantsModuleLoaded (global, ns) {
 
     // Whether we're using the extension in development / debug mode.
     // If true, will cause reauthentication and other related behaviors to

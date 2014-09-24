@@ -1,13 +1,13 @@
-__UIC(["models", "user"], function (global, ns) {
+UIC(["models", "user"], function (global, ns) {
 
 var constants = global.constants,
     utils = global.lib.utils,
-    _installId = null,
-    _registrationTime = null,
-    _checkInTime = null,
-    _email = null,
-    _group = null,
-    _secret = null;
+    installId = null,
+    registrationTime = null,
+    checkInTime = null,
+    email = null,
+    group = null,
+    secret = null;
 
 /**
  * Returns the current install id for the extension. Will return the string
@@ -19,11 +19,11 @@ var constants = global.constants,
  */
 ns.installId = function () {
 
-    if (!_installId) {
-        _installId = kango.storage.getItem("install_id");
+    if (!installId) {
+        installId = kango.storage.getItem("install_id");
     }
 
-    return _installId;
+    return installId;
 };
 
 /**
@@ -37,11 +37,11 @@ ns.installId = function () {
  */
 ns.clientSecret = function () {
 
-    if (_secret === null) {
-        _secret = kango.storage.getItem("secret");
+    if (secret === null) {
+        secret = kango.storage.getItem("secret");
     }
 
-    return _secret;
+    return secret;
 };
 
 /**
@@ -76,11 +76,11 @@ ns.blindValue = function (value) {
  */
 ns.registrationTime = function () {
 
-    if (!_registrationTime) {
-        _registrationTime = kango.storage.getItem("registration_time");
+    if (!registrationTime) {
+        registrationTime = kango.storage.getItem("registration_time");
     }
 
-    return _registrationTime;
+    return registrationTime;
 };
 
 /**
@@ -94,11 +94,11 @@ ns.registrationTime = function () {
  */
 ns.checkInTime = function () {
 
-    if (!_checkInTime) {
-        _checkInTime = kango.storage.getItem("check_in_time");
+    if (!checkInTime) {
+        checkInTime = kango.storage.getItem("check_in_time");
     }
 
-    return _checkInTime;
+    return checkInTime;
 };
 
 /**
@@ -110,11 +110,11 @@ ns.checkInTime = function () {
  */
 ns.email = function () {
 
-    if (!_email) {
-        _email = kango.storage.getItem("email");
+    if (!email) {
+        email = kango.storage.getItem("email");
     }
 
-    return _email;
+    return email;
 };
 
 /**
@@ -127,11 +127,11 @@ ns.email = function () {
  */
 ns.isReauthGroup = function () {
 
-    if (!_group) {
-        _group = kango.storage.getItem("group");
+    if (!group) {
+        group = kango.storage.getItem("group");
     }
 
-    return (_group === "reauth");
+    return (group === "reauth");
 };
 
 /**
@@ -144,11 +144,11 @@ ns.isReauthGroup = function () {
  */
 ns.isAutoFillGroup = function () {
 
-    if (!_group) {
-        _group = kango.storage.getItem("group");
+    if (!group) {
+        group = kango.storage.getItem("group");
     }
 
-    return (_group === "autofill");
+    return (group === "autofill");
 };
 
 /**
@@ -156,22 +156,22 @@ ns.isAutoFillGroup = function () {
  */
 ns.clearState = function () {
 
-    _secret = null;
+    secret = null;
     kango.storage.removeItem("secret");
 
-    _email = null;
+    email = null;
     kango.storage.removeItem("email");
 
-    _registrationTime = null;
+    registrationTime = null;
     kango.storage.removeItem("registration_time");
 
-    _installId = null;
+    installId = null;
     kango.storage.removeItem("install_id");
 
-    _group = null;
+    group = null;
     kango.storage.removeItem("group");
 
-    _checkInTime = null;
+    checkInTime = null;
     kango.storage.removeItem("check_in_time");
 };
 
@@ -267,8 +267,8 @@ ns.heartbeat = function (callback) {
         contentType: "json"
     },
     function (result) {
-        _checkInTime = utils.now();
-        kango.storage.setItem("check_in_time", _checkInTime);
+        checkInTime = utils.now();
+        kango.storage.setItem("check_in_time", checkInTime);
         callback((result.status >= 200 && result.status < 300));
     });
 };

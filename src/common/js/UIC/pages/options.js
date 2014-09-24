@@ -1,4 +1,4 @@
-__UIC(["pages", "config"], function (global, ns) {
+UIC(["pages", "config"], function (global, ns) {
 
 KangoAPI.onReady(function () {
 

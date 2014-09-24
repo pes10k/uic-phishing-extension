@@ -1,16 +1,16 @@
-__UIC(['models', 'domains'], function (global, ns) {
+UIC(['models', 'domains'], function (global, ns) {
 
 var constants = global.constants,
     utils = global.lib.utils,
     currentUser = global.models.user.getInstance(),
-    _updateTime = null,
-    _domainRulesRaw = null,
-    _domainRules = null,
-    _studyStatus = null,
-    _updateDomainRules,
-    _getDomainRulesRaw,
-    _getDomainRules,
-    _getParsedDomainRules,
+    updateTime = null,
+    domainRulesRaw = null,
+    domainRules = null,
+    studyStatus = null,
+    updateDomainRules,
+    getDomainRulesRaw,
+    getDomainRules,
+    getParsedDomainRules,
     DomainRule;
 
 /**
@@ -21,7 +21,7 @@ var constants = global.constants,
  *   A callback function that is called with a single parameter, a boolean
  *   description of whether the domain rules were successfully updated.
  */
-_updateDomainRules = function (callback) {
+updateDomainRules = function (callback) {
 
     if (!currentUser.installId()) {
         callback(false);
@@ -44,32 +44,32 @@ _updateDomainRules = function (callback) {
             return;
         }
 
-        _updateTime = utils.now();
-        kango.storage.setItem("domain_rules_ts", _updateTime);
+        updateTime = utils.now();
+        kango.storage.setItem("domain_rules_ts", updateTime);
 
         // The service will return back a json value, describing whether the
         // study is currently active or not
-        _studyStatus = result.response.active;
-        kango.storage.setItem("study_is_active", _studyStatus);
+        studyStatus = result.response.active;
+        kango.storage.setItem("study_is_active", studyStatus);
 
         // What we get back from the webservice is JSON, which is what we
         // store locally.  What we use internally though is an object wrapped
         // representation of each domain
-        _domainRulesRaw = result.response.msg;
-        kango.storage.setItem("domain_rules_raw", _domainRulesRaw);
+        domainRulesRaw = result.response.msg;
+        kango.storage.setItem("domain_rules_raw", domainRulesRaw);
 
-        _domainRules = null;
+        domainRules = null;
         callback(true);
     });
 };
 
-_getDomainRulesRaw = function () {
+getDomainRulesRaw = function () {
 
-    if (!_domainRulesRaw) {
-        _domainRulesRaw = kango.storage.getItem("domain_rules_raw");
+    if (!domainRulesRaw) {
+        domainRulesRaw = kango.storage.getItem("domain_rules_raw");
     }
 
-    return _domainRulesRaw;
+    return domainRulesRaw;
 };
 
 /**
@@ -81,27 +81,27 @@ _getDomainRulesRaw = function () {
  *   to represent, or an array of DomainRule objects otherwise representing
  *   each of the domains we watch.
  */
-_getParsedDomainRules = function () {
+getParsedDomainRules = function () {
 
     var i,
         locallyFetchedDomainRules,
         aRawRule,
         aParsedRule;
 
-    if (_domainRules) {
-        return _domainRules;
+    if (domainRules) {
+        return domainRules;
     }
 
-    _domainRules = [];
-    locallyFetchedDomainRules = _getDomainRulesRaw();
+    domainRules = [];
+    locallyFetchedDomainRules = getDomainRulesRaw();
 
     for (i in locallyFetchedDomainRules) {
         aRawRule = locallyFetchedDomainRules[i];
         aParsedRule = new DomainRule(aRawRule);
-        _domainRules.push(aParsedRule);
+        domainRules.push(aParsedRule);
     }
 
-    return _domainRules;
+    return domainRules;
 };
 
 /**
@@ -114,7 +114,7 @@ _getParsedDomainRules = function () {
  *   if the domain rules are not available, or an array containing domain rule
  *   objects.
  */
-_getDomainRules = function (callback) {
+getDomainRules = function (callback) {
 
     if (!currentUser.installId()) {
         callback(false);
@@ -128,7 +128,7 @@ _getDomainRules = function (callback) {
     if (!ns.getUpdateTime() ||
         (ns.getUpdateTime() + constants.ruleExpirationTime) < utils.now()) {
 
-        _updateDomainRules(function (wasUpdated) {
+        updateDomainRules(function (wasUpdated) {
 
             // If we unsuccesfully updated the domain rules, we can't do
             // nothing more, so just cut it all out.
@@ -139,13 +139,13 @@ _getDomainRules = function (callback) {
 
             // Otherwise, reparse the raw domain rule data and send that
             // back to the caller
-            callback(_getParsedDomainRules());
+            callback(getParsedDomainRules());
         });
         return;
     }
 
     // Otherwise, pass back the objects that we have already parsed
-    callback(_getParsedDomainRules());
+    callback(getParsedDomainRules());
     return;
 };
 
@@ -164,13 +164,13 @@ _getDomainRules = function (callback) {
  */
 ns.isStudyActive = function (callback) {
 
-    _getDomainRules(function (fetchedDomainRules) {
+    getDomainRules(function (fetchedDomainRules) {
 
-        if (_studyStatus === null) {
-            _studyStatus = kango.storage.getItem("study_is_active");
+        if (studyStatus === null) {
+            studyStatus = kango.storage.getItem("study_is_active");
         }
 
-        callback(_studyStatus);
+        callback(studyStatus);
     });
 };
 
@@ -184,12 +184,12 @@ ns.isStudyActive = function (callback) {
  */
 ns.getUpdateTime = function () {
 
-    if (_updateTime) {
-        return _updateTime;
+    if (updateTime) {
+        return updateTime;
     }
 
-    _updateTime = kango.storage.getItem("domain_rules_ts");
-    return _updateTime;
+    updateTime = kango.storage.getItem("domain_rules_ts");
+    return updateTime;
 };
 
 /**
@@ -205,7 +205,7 @@ ns.getUpdateTime = function () {
  */
 ns.isDomainOfUrlWatched = function (url, callback) {
 
-    _getDomainRules(function (fetchedDomainRules) {
+    getDomainRules(function (fetchedDomainRules) {
 
         var i;
 
@@ -236,7 +236,7 @@ ns.clearState = function (callback) {
 
     utils.debug("Clearing state for all domain rules...");
 
-    _getDomainRules(function (rules) {
+    getDomainRules(function (rules) {
 
         var i;
 
@@ -247,16 +247,16 @@ ns.clearState = function (callback) {
             }
         }
 
-        _studyStatus = null;
+        studyStatus = null;
         kango.storage.removeItem("study_is_active");
 
-        _updateTime = null;
+        updateTime = null;
         kango.storage.removeItem("domain_rules_ts");
 
-        _domainRulesRaw = null;
+        domainRulesRaw = null;
         kango.storage.removeItem("domain_rules_raw");
 
-        _domainRules = null;
+        domainRules = null;
 
         callback();
     });
@@ -292,17 +292,17 @@ ns.clearState = function (callback) {
 */
 ns.shouldAlterCookie = function (url, name, callback) {
 
-    _getDomainRules(function (fetchedDomainRules) {
+    getDomainRules(function (fetchedDomainRules) {
 
         var i,
             reauthReason,
             aDomainRule;
 
-        if (_studyStatus === null) {
-            _studyStatus = kango.storage.getItem("study_is_active");
+        if (studyStatus === null) {
+            studyStatus = kango.storage.getItem("study_is_active");
         }
 
-        if (!_studyStatus) {
+        if (!studyStatus) {
             callback(false, "inactive");
             return;
         }
@@ -331,6 +331,58 @@ ns.shouldAlterCookie = function (url, name, callback) {
 
         callback(false, "no-match");
         return;
+    });
+};
+
+/**
+ * Receives an array of cookie descriptions (pairs of urls and names for
+ * cookies), and returns the subset of them that correspond to cookies that
+ * are being watched by the extension.
+ *
+ * @param array cookies
+ *   An array of arrays, with each contained array having two values in it,
+ *   a url that the cookie is set on, and the name of the cookie
+ * @param function callback
+ *   A function to call when the filtering is complete.  This function will
+ *   be called with one argument, an array of zero or more elements from the
+ *   provided cookies array that correspond to watched cookies.
+ */
+ns.filterWatchedCookies = function (cookies, callback) {
+
+    getDomainRules(function (fetchedDomainRules) {
+
+        var matchingCookies = [];
+
+        if (studyStatus === null) {
+            studyStatus = kango.storage.getItem("study_is_active");
+        }
+
+        if (!studyStatus) {
+            callback(matchingCookies);
+            return;
+        }
+
+        if (!fetchedDomainRules) {
+            callback(matchingCookies);
+            return;
+        }
+
+        matchingCookies = cookies.filter(function (value) {
+
+            var cookieUrl = value[0],
+                cookieName = value[1],
+                i;
+
+            for (i = 0; i < fetchedDomainRules.length; i += 1) {
+                aRule = fetchedDomainRules[i];
+                if (aRule.shouldAlterCookie(cookieUrl, cookieName) === true) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        callback(matchingCookies);
     });
 };
 
