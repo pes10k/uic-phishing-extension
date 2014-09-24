@@ -1,4 +1,6 @@
 BUILD_DIR = output
+EXT_INFO_FILE = src/common/extension_info.json
+EXT_INFO_FILE_TMP = src/common/extension_info.json.tmp
 CONST_FILE = src/common/js/UIC/constants.js
 TMP_CONSTANTS = constants.js.tmp
 
@@ -22,6 +24,14 @@ flag :
 	@cp ${CONST_FILE} ${TMP_CONSTANTS}
 	@sed -i '' -E 's/ns\.debug = (false|true);/ns.debug = ${DEBUG};/' ${CONST_FILE}
 
+	ifeq (${DEBUG}, false)
+		# If we're in release mode, also strip the browser button out of the
+		# build, since this exposes functionality we don't want end users
+		# to see
+		@cp ${EXT_INFO_FILE} ${EXT_INFO_FILE_TMP}
+		@sed -i '' -E 's/"browser_button":.*//' ${EXT_INFO_FILE}
+	endif
+
 pack :
 	# Compressing and packing javascript for release
 	@for JS in `find src -name "*.js" | grep -v contrib`; do \
@@ -43,6 +53,10 @@ restore :
 
 	# Restoring the build tree to its previous state
 	@mv ${TMP_CONSTANTS} ${CONST_FILE}
+
+	ifeq (${DEBUG}, false)
+		@mv ${EXT_INFO_FILE_TMP} ${EXT_INFO_FILE}
+	endif
 
 all : clean
 
