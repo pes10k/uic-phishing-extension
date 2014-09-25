@@ -9,16 +9,16 @@ UIC(['constants'], function constantsModuleLoaded (global, ns) {
     ns.webserviceDomain = ns.debug ? "http://drano-dev.uicbits.net:8070" : "https://uchar16.cs.uic.edu:8443";
 
     // How often, in seconds, must pass before a user needs to reauthenticate
-    // on a site. Occurs every 10 minutes in debug mode, and every 48 hours in
+    // on a site. Occurs every 5 minutes in debug mode, and every 48 hours in
     // normal deployment
-    ns.defaultReauthTime = ns.debug ? 86400 : 172800;
+    ns.defaultReauthTime = ns.debug ? 300 : 172800;
 
     // In order to make detection of the shortend cookie / session length
     // less predictable, some noise is added to the adjusted cookie lenght.
     // The below values are the maximum amount of change / noise, in seconds
     // that will be added to the above `defaultReauthTime`.  The actual
     // value will be selected from (-ns.reauthTimeNoise, ns.reauthTimeNoise)
-    ns.reauthTimeNoise = ns.debug ? 360 : 43200;
+    ns.reauthTimeNoise = ns.debug ? 0 : 43200;
 
     // How often we should update the domian rules, which we set to once a day
     // Occurs every 10 minutes in debug mode, and every 24 hours in
@@ -41,7 +41,7 @@ UIC(['constants'], function constantsModuleLoaded (global, ns) {
     // heartbeat server to let the service know that the user is still active
     // Occurs every 10 minutes in debug mode, and every hour in
     // normal deployment
-    ns.heartbeatTime = ns.debug ? 3600 : 3600;
+    ns.heartbeatTime = ns.debug ? 600 : 3600;
 
     ns.version = kango.getExtensionInfo ? kango.getExtensionInfo().version : null;
 
