@@ -30,9 +30,10 @@
 
 
             callback(window.UIC, ns);
-        };
+        },
+        UIC;
 
-    var UIC = window.UIC = function (parts, callback) {
+    UIC = window.UIC = function (parts, callback) {
 
         var date = new Date();
 

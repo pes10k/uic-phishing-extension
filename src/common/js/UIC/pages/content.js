@@ -53,8 +53,13 @@ watchForm = function (form_node) {
         // Register password entry if the user hits enter in the password
         // field
         pwInput.addEventListener('keyup', function (e) {
-            if (pwInput.value && pwFieldHasChanged &&
-                e.keyCode == 13 && !pwEntryReported) {
+            if (pwInput.value &&     // If some password has been entered..
+                pwFieldHasChanged && // And the contents of the password field
+                                     // have changed...
+                ([13, 9].indexOf(e.keyCode) !== -1) &&
+                                     // and "return" or "tab" is being
+                                     // pressed...
+                !pwEntryReported) {  // And we haven't already rec'ed this field
                 pwEntryReported = true;
                 reportPasswordTyped(pwInput);
             } else if (String.fromCharCode(e.which)) {
@@ -70,7 +75,6 @@ watchForm = function (form_node) {
                 reportPasswordTyped(pwInput);
             }
         }, false);
-
     }
 };
 
