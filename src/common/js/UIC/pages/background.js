@@ -48,11 +48,11 @@ UIC(['pages', 'background'], function (global, ns) {
             currentUrl = data.currentUrl,
             redirectUrl = data.redirectUrl;
 
-        if (!_prevRedirectUrls[tabId]) {
-            _prevRedirectUrls[tabId] = new global.lib.queue.LimitedQueue(2);
+        if (!prevRedirectUrls[tabId]) {
+            prevRedirectUrls[tabId] = new global.lib.queue.LimitedQueue(2);
         }
 
-        _prevRedirectUrls[tabId].push(redirectUrl);
+        prevRedirectUrls[tabId].push(redirectUrl);
     });
 
 
@@ -177,8 +177,8 @@ UIC(['pages', 'background'], function (global, ns) {
         // Set the a "*" note whenever we visit a page that sets one or more
         // cookies that we watch.  Otherwise, the browser button appears un-adorned.
         // For further debugging help, also set the tooltip for the browser button
-        // to be a description (ie cookie-name@cookie-url) of each cookie watched
-        // on the current page.
+        // to be a description (ie cookie-name@cookie-url cookie-expiration) of
+        // each cookie watched on the current page.
         kango.browser.addEventListener(
             kango.browser.event.TAB_CHANGED,
             function (event) {
@@ -188,8 +188,9 @@ UIC(['pages', 'background'], function (global, ns) {
                     function cookiesForUrlCallback (cookies) {
                         var prettyCookies = cookies.map(function (cookie) {
                             var cookieUrl = cookie[0],
-                                cookieName = cookie[1];
-                            return cookieName + "@" + cookieUrl;
+                                cookieName = cookie[1],
+                                cookieDate = utils.timestampToString(cookie[3]);
+                            return cookieName + "@" + cookieUrl + " (" + cookieDate + ")";
                         });
 
                         kango.ui.browserButton.setBadgeValue(cookies.length);
@@ -201,11 +202,38 @@ UIC(['pages', 'background'], function (global, ns) {
 
         kango.ui.browserButton.addEventListener(
             kango.ui.browserButton.event.COMMAND,
-            function (event) {
-                var currentUrl = event.url;
-                // var currentUrl = event.data.url;
+            function browserButtonCallback () {
+                kango.browser.tabs.getCurrent(function (tab) {
+                    models.cookies.getInstance().cookiesForUrl(
+                        tab.getUrl(),
+                        function cookiesForUrlToDeleteCallback (cookies) {
 
-                // kango.console.log('Button clicked!');
+                            var cookieModel = models.cookies.getInstance();
+
+                            cookies.forEach(function (cookie) {
+                                var cookieUrl = cookie[0],
+                                    cookieName = cookie[1],
+                                    cookieIsSecure = cookie[2],
+                                    fullCookieUrl = (cookieIsSecure ? 'https://' : 'http://') + cookieUrl;
+
+                                cookieModel.delete(
+                                    fullCookieUrl,
+                                    cookieName,
+                                    function (url, name, wasDeleted, error) {
+                                        if (wasDeleted) {
+                                            debug("Successfully deleted " + name + "@" + url);
+                                        } else {
+                                            debug("Error deleting " + name + "@" + url + " (" + error + ")");
+                                        }
+                                    }
+                                );
+                            });
+
+                            kango.ui.browserButton.setBadgeValue("");
+                            kango.ui.browserButton.setTooltipText("");
+                        }
+                    );
+                });
             }
         );
     }

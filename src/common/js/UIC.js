@@ -4,7 +4,7 @@
 
             var i,
                 next_leaf,
-                current_leaf = window.__UIC;
+                current_leaf = window.UIC;
 
             for (i = 0; i < parts.length; i += 1) {
 
@@ -29,7 +29,7 @@
             }
 
 
-            callback(window.__UIC, ns);
+            callback(window.UIC, ns);
         };
 
     var UIC = window.UIC = function (parts, callback) {

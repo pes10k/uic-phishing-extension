@@ -2,7 +2,7 @@
  * Track when cookies are set for the domains we care about, and handle deleting
  * or altering cookies when needed.
  */
-_UIC(['models', 'cookies'], function (global, ns) {
+UIC(['models', 'cookies'], function (global, ns) {
 
     Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -35,38 +35,42 @@ _UIC(['models', 'cookies'], function (global, ns) {
             cookie = subject.QueryInterface(Components.interfaces.nsICookie2);
             cookieAsStr = utils.cookieToStr(cookie);
 
-            domainsModel.shouldAlterCookie(cookie.host, cookie.name, function shouldAlterCookieCallback(shouldAlter, reason) {
+            domainsModel.shouldAlterCookie(
+                cookie.host,
+                cookie.name,
+                function shouldAlterCookieCallback(shouldAlter, reason) {
 
-                var expireTime = utils.expirationTimeForNewCookie();
+                    var expireTime = utils.expirationTimeForNewCookie();
 
-                if (!shouldAlter) {
-                    utils.debug(cookieAsStr + ": Not altering, " + reason);
-                    return;
+                    if (!shouldAlter) {
+                        utils.debug(cookieAsStr + ": Not altering, " + reason);
+                        return;
+                    }
+
+                    if (cookie.expires <= expireTime) {
+                        utils.debug(cookieAsStr + ": Not altering, current " +
+                            "expiration time is sooner than the 'short' one.");
+                        return;
+                    }
+
+                    utils.debug(cookieAsStr + ": Setting expiration at " +
+                        utils.timestampToString(expireTime));
+
+                    // First delete the cookie we're replacing
+                    ns['delete'](cookie.host + cookie.path, cookie.name);
+
+                    cookieService.add(
+                        cookie.host,
+                        cookie.path,
+                        cookie.name,
+                        cookie.value,
+                        cookie.isSecure,
+                        cookie.isHttpOnly,
+                        cookie.isSession,
+                        expireTime
+                    );
                 }
-
-                if (cookie.expires <= expireTime) {
-                    utils.debug(cookieAsStr + ": Not altering, current " +
-                        "expiration time is sooner than the 'shortend' one.");
-                    return;
-                }
-
-                utils.debug(cookieAsStr + ": Setting expiration at " +
-                    utils.timestampToString(expireTime));
-
-                // First delete the cookie we're replacing
-                ns['delete'](cookie.host + cookie.path, cookie.name);
-
-                cookieService.add(
-                    cookie.host,
-                    cookie.path,
-                    cookie.name,
-                    cookie.value,
-                    cookie.isSecure,
-                    cookie.isHttpOnly,
-                    cookie.isSession,
-                    expireTime
-                );
-            });
+            );
         },
         register: function () {
             utils.debug("Registering for cookie notifications");
@@ -78,7 +82,6 @@ _UIC(['models', 'cookies'], function (global, ns) {
     };
 
     cookieObserver.register();
-
 
     /**
      * Delete a cookie from the current browser cookie jar
@@ -132,4 +135,55 @@ _UIC(['models', 'cookies'], function (global, ns) {
         callback(url, name, wasDeleted, null);
     };
 
+    /**
+     * Returns an array of all cookies being watched that apply to the given
+     * url.
+     *
+     * @param string url
+     *   A fully formed url, such as http://example.org/resource
+     * @param function callback
+     *   A function to call once we have an answer for how many cookies
+     *   have been set in the client that apply to the given url.  The function
+     *   is called with a single argument, an array of zero or more triples of
+     *   values: [url, name, is secure, exp date (as unix timestamp)].
+     */
+    ns.cookiesForUrl = function (url, callback) {
+
+        var domain = utils.extractDomain(url),
+            path = utils.extractPath(url),
+            cookieIterator,
+            aCookie,
+            possibleCookies = [];
+
+        utils.debug("Searching for cookies with domain=" + domain);
+
+        cookieIterator = cookieService.getCookiesFromHost(domain);
+        while (cookieIterator.hasMoreElements()) {
+            aCookie = cookieIterator.getNext().QueryInterface(Components.interfaces.nsICookie2);
+
+            // If its a session cookie, ignore it.  We're only interested in
+            // perstant cookies
+            if (aCookie.expires === 0) {
+                continue;
+            // Similarly, if a cookie has an odd, far pass expiration time,
+            // also ignore it.  Its some weird unexpected condition
+            } else if (aCookie.expires === 1) {
+                continue;
+            }
+
+            possibleCookies.push([
+                aCookie.host + aCookie.path,
+                aCookie.name,
+                aCookie.isSecure,
+                aCookie.expires
+            ]);
+        }
+
+        domainsModel.filterWatchedCookies(
+            possibleCookies,
+            function filterWatchedCookiesCallback (watchedCookies) {
+                callback(watchedCookies);
+            }
+        );
+    };
 });

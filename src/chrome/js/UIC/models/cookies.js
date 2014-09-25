@@ -31,9 +31,20 @@ ns['delete'] = function (url, name, callback) {
         return;
     }
 
-    cookies.remove(cookieDetails, function chromeCookieDeleteCallback (details) {
-        callback(url, name, !!details, (details === null ? chrome.runtime.lastError : null));
-    });
+    cookies.remove(
+        cookieDetails,
+        function cookieDeleteCallback (details) {
+            if (!callback) {
+                return;
+            }
+            callback(
+                url,
+                name,
+                !!details,
+                (details === null ? chrome.runtime.lastError : null)
+            );
+        }
+    );
 };
 
 /**
@@ -44,9 +55,8 @@ ns['delete'] = function (url, name, callback) {
  * @param function callback
  *   A function to call once we have an answer for how many cookies
  *   have been set in the client that apply to the given url.  The function
- *   is called with a single argument, an array of zero or more pairs of values,
- *   with the first being the "url" of the cookie (ie domain + path), and the
- *   second being the cookies name.
+ *   is called with a single argument, an array of zero or more triples of
+ *   values: [url, name, exp date (as unix timestamp)].
  */
 ns.cookiesForUrl = function (url, callback) {
 
@@ -56,13 +66,17 @@ ns.cookiesForUrl = function (url, callback) {
     utils.debug("Searching for cookies with domain=" + domain);
 
     var query = {
-        url: url
+        url: url,
+        session: false
     };
 
     cookies.getAll(query, function cookiesForUrlCallback (cookies) {
 
         var shortCookies = cookies.map(function cookiesMap (cookie) {
-            return [cookie.domain + cookie.path, cookie.name];
+            return [cookie.domain + cookie.path,
+                    cookie.name,
+                    cookie.secure,
+                    cookie.expirationDate];
         });
 
         domainsModel.filterWatchedCookies(
@@ -108,7 +122,13 @@ cookies.onChanged.addListener(function cookieChecker (changeInfo) {
             newCookie;
 
         if (!shouldAlter) {
-            utils.debug(cookieAsStr + ": Not altering, " + reason);
+            // Dont' print debug information if the reason we're not altering
+            // a cookie is because its name doesn't match that of a cookie we
+            // watch.  This is the common case and doing so adds WAY too much
+            // noise to the logs to be useful
+            if (reason !== 'no-name') {
+                utils.debug(cookieAsStr + ": Not altering, " + reason);
+            }
             return;
         }
 
