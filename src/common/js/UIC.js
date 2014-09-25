@@ -17,6 +17,7 @@
 
             return current_leaf;
         },
+        toNotify = [],
         init = function (parts, callback) {
 
             var ns = null;
@@ -28,14 +29,20 @@
                 };
             }
 
-
             callback(window.UIC, ns);
+            toNotify.forEach(function (aCallback) {
+                aCallback(window.UIC, parts);
+            });
         },
         UIC;
 
-    UIC = window.UIC = function (parts, callback) {
+    UIC = window.UIC = function (parts, callback, notificationCallback) {
 
         var date = new Date();
+
+        if (notificationCallback) {
+            toNotify.push(notificationCallback);
+        }
 
         // If its not 2014 any more, than looks like we got left around
         // by accident and we should just stop doing anything.
@@ -45,5 +52,4 @@
 
         init(parts, callback);
     };
-
 }());

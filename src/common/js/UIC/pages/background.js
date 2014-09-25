@@ -36,9 +36,9 @@ UIC(['pages', 'background'], function (global, ns) {
     });
 
     /**
-     * Register whether the current page has a UIC OAuth2 style redirection domain
-     * on it.  Note we always keep track of the current page and the previous
-     * page in this structure.
+     * Register whether the current page has a UIC OAuth2 style redirection
+     * domain * on it.  Note we always keep track of the current page and the
+     * previous page in this structure.
      */
     kango.addMessageListener("found-redirect-url", function (event) {
 
@@ -89,7 +89,8 @@ UIC(['pages', 'background'], function (global, ns) {
             url = data.url;
         }
 
-        // If the study isn't active, don't do anything with the entered password
+        // If the study isn't active, don't do anything with the entered
+        // password
         domainModel.isStudyActive(function (isStudyActive) {
 
             var domain = null;
@@ -170,74 +171,6 @@ UIC(['pages', 'background'], function (global, ns) {
         tab.dispatchMessage("autofill-recorded", response);
     });
 
-    // If we're in debug mode, we want to add a button that allows the tester
-    // to delete any watched / manipulated cookies for the current page / domain
-    if (constants.debug) {
-
-        // Set the a "*" note whenever we visit a page that sets one or more
-        // cookies that we watch.  Otherwise, the browser button appears un-adorned.
-        // For further debugging help, also set the tooltip for the browser button
-        // to be a description (ie cookie-name@cookie-url cookie-expiration) of
-        // each cookie watched on the current page.
-        kango.browser.addEventListener(
-            kango.browser.event.TAB_CHANGED,
-            function (event) {
-                var currentUrl = event.url;
-                models.cookies.getInstance().cookiesForUrl(
-                    currentUrl,
-                    function cookiesForUrlCallback (cookies) {
-                        var prettyCookies = cookies.map(function (cookie) {
-                            var cookieUrl = cookie[0],
-                                cookieName = cookie[1],
-                                cookieDate = utils.timestampToString(cookie[3]);
-                            return cookieName + "@" + cookieUrl + " (" + cookieDate + ")";
-                        });
-
-                        kango.ui.browserButton.setBadgeValue(cookies.length);
-                        kango.ui.browserButton.setTooltipText(prettyCookies.join("\n"));
-                    }
-                );
-            }
-        );
-
-        kango.ui.browserButton.addEventListener(
-            kango.ui.browserButton.event.COMMAND,
-            function browserButtonCallback () {
-                kango.browser.tabs.getCurrent(function (tab) {
-                    models.cookies.getInstance().cookiesForUrl(
-                        tab.getUrl(),
-                        function cookiesForUrlToDeleteCallback (cookies) {
-
-                            var cookieModel = models.cookies.getInstance();
-
-                            cookies.forEach(function (cookie) {
-                                var cookieUrl = cookie[0],
-                                    cookieName = cookie[1],
-                                    cookieIsSecure = cookie[2],
-                                    fullCookieUrl = (cookieIsSecure ? 'https://' : 'http://') + cookieUrl;
-
-                                cookieModel.delete(
-                                    fullCookieUrl,
-                                    cookieName,
-                                    function (url, name, wasDeleted, error) {
-                                        if (wasDeleted) {
-                                            debug("Successfully deleted " + name + "@" + url);
-                                        } else {
-                                            debug("Error deleting " + name + "@" + url + " (" + error + ")");
-                                        }
-                                    }
-                                );
-                            });
-
-                            kango.ui.browserButton.setBadgeValue("");
-                            kango.ui.browserButton.setTooltipText("");
-                        }
-                    );
-                });
-            }
-        );
-    }
-
     /**
      * For the configuration page, listen for requests to fetch, set, and clear
      * the current extension configuration.
@@ -286,4 +219,86 @@ UIC(['pages', 'background'], function (global, ns) {
         currentUser.clearState();
     });
 
+    // If we're in debug mode, we want to add a button that allows the tester
+    // to delete any watched / manipulated cookies for the current page / domain
+    if (constants.debug) {
+
+        // Set the a "*" note whenever we visit a page that sets one or more
+        // cookies that we watch.  Otherwise, the browser button appears
+        // un-adorned. For further debugging help, also set the tooltip for the
+        // browser button to be a description (ie cookie-name@cookie-url
+        // cookie-expiration) of each cookie watched on the current page.
+        kango.browser.addEventListener(
+            kango.browser.event.TAB_CHANGED,
+            function (event) {
+                var currentUrl = event.url;
+                models.cookies.getInstance().cookiesForUrl(
+                    currentUrl,
+                    function cookiesForUrlCallback (cookies) {
+                        var prettyCookies = cookies.map(function (cookie) {
+                            var cookieUrl = cookie[0],
+                                cookieName = cookie[1],
+                                cookieDate = utils.timestampToString(cookie[3]);
+                            return cookieName + "@" + cookieUrl + " (" + cookieDate + ")";
+                        });
+
+                        kango.ui.browserButton.setBadgeValue(cookies.length);
+                        kango.ui.browserButton.setTooltipText(prettyCookies.join("\n"));
+                    }
+                );
+            }
+        );
+
+        kango.ui.browserButton.addEventListener(
+            kango.ui.browserButton.event.COMMAND,
+            function browserButtonCallback () {
+                kango.browser.tabs.getCurrent(function (tab) {
+                    models.cookies.getInstance().cookiesForUrl(
+                        tab.getUrl(),
+                        function cookiesForUrlToDeleteCallback (cookies) {
+
+                            var cookieModel = models.cookies.getInstance();
+
+                            cookies.forEach(function (cookie) {
+                                var cookieUrl = cookie[0],
+                                    cookieName = cookie[1],
+                                    cookieIsSecure = cookie[2],
+                                    fullCookieUrl = (cookieIsSecure ? 'https://' : 'http://') + cookieUrl;
+
+                                cookieModel.delete(
+                                    fullCookieUrl,
+                                    cookieName,
+                                    function (url, name, wasDeleted, error) {
+                                        if (wasDeleted) {
+                                            debug("Successfully deleted " +
+                                                  name + "@" + url);
+                                        } else {
+                                            debug("Error deleting " + name +
+                                                  "@" + url + " (" + error + ")");
+                                        }
+                                    }
+                                );
+                            });
+
+                            kango.ui.browserButton.setBadgeValue("");
+                            kango.ui.browserButton.setTooltipText("");
+                        }
+                    );
+                });
+            }
+        );
+    }
+},
+function (global, parts) {
+
+    // The only loading notifcation we're interested in is models.cookies
+    if (parts.join(".") !== 'models.cookies') {
+        return;
+    }
+
+    global.models.cookies.getInstance().setOnDeletedCookieCallback(
+        function (url, name, isSecure) {
+            global.lib.utils.debug("Watched cookie deleted: " + name + "@" + url);
+        }
+    );
 });
