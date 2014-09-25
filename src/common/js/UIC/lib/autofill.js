@@ -116,5 +116,4 @@ UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
 
         return elm;
     };
-
 });
