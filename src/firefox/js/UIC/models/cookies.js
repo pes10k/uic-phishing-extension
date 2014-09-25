@@ -156,20 +156,9 @@ UIC(['models', 'cookies'], function (global, ns) {
             possibleCookies = [];
 
         utils.debug("Searching for cookies with domain=" + domain);
-
         cookieIterator = cookieService.getCookiesFromHost(domain);
         while (cookieIterator.hasMoreElements()) {
             aCookie = cookieIterator.getNext().QueryInterface(Components.interfaces.nsICookie2);
-
-            // If its a session cookie, ignore it.  We're only interested in
-            // perstant cookies
-            if (aCookie.expires === 0) {
-                continue;
-            // Similarly, if a cookie has an odd, far pass expiration time,
-            // also ignore it.  Its some weird unexpected condition
-            } else if (aCookie.expires === 1) {
-                continue;
-            }
 
             possibleCookies.push([
                 aCookie.host + aCookie.path,
@@ -179,9 +168,11 @@ UIC(['models', 'cookies'], function (global, ns) {
             ]);
         }
 
+        utils.debug(possibleCookies);
         domainsModel.filterWatchedCookies(
             possibleCookies,
             function filterWatchedCookiesCallback (watchedCookies) {
+                utils.debug(watchedCookies);
                 callback(watchedCookies);
             }
         );
