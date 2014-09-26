@@ -23,13 +23,9 @@ UIC(['models', 'cookies'], function (global, ns) {
             var cookie,
                 cookieAsStr;
 
-            utils.debug("Received cookie notification: " + data);
-
             // We only care about when a cookie is set or edited.  All other
             // cookie related events can be ignored
             if (data !== "added" && data !== "changed" && data !== "deleted") {
-                utils.debug("Not acting on cookie because it not status " +
-                    "'added', 'changed' or 'deleted'");
                 return;
             }
 
@@ -44,11 +40,21 @@ UIC(['models', 'cookies'], function (global, ns) {
                     var expireTime = utils.expirationTimeForNewCookie();
 
                     if (!shouldAlter) {
-                        utils.debug(cookieAsStr + ": Not altering, " + reason);
+                        // Dont' print debug information if the reason we're not
+                        // altering a cookie is because its name doesn't match
+                        // that of a cookie we watch.  This is the common case
+                        // and doing so adds WAY too much noise to the logs to
+                        // be useful
+                        if (reason !== 'no-name' && reason !== 'no-match') {
+                            utils.debug(cookieAsStr + ": Not altering, " + reason);
+                        }
                         return;
                     }
 
-                    // If we're being notified that a cookie was
+                    // If we're being notified that a cookie was deleted,
+                    // we want to notify whoever most recently registered
+                    // for the deletion notification (if someone did),
+                    // and then process no further
                     if (data === "delete") {
                         if (onDeletedCookieCallback) {
                             onDeletedCookieCallback(
@@ -109,7 +115,7 @@ UIC(['models', 'cookies'], function (global, ns) {
      * @return object
      *   A refrence to the current model object.
      */
-     ns.setOnDeletedCookieCallback = function (callback) {
+    ns.setOnDeletedCookieCallback = function (callback) {
         onDeletedCookieCallback = callback;
         return this;
     };
@@ -134,13 +140,7 @@ UIC(['models', 'cookies'], function (global, ns) {
             aCookie,
             wasDeleted = true;
 
-        utils.debug("Attempting to remove cookie");
-        utils.debug({
-            host: host,
-            path: path,
-            name: name
-        });
-
+        utils.debug("Attempting to remove cookie: " + name + "@" + url);
         cookieManager.remove(host, name, path, false);
 
         if (!callback) {
@@ -163,6 +163,7 @@ UIC(['models', 'cookies'], function (global, ns) {
             }
         }
 
+        utils.debug("Looks like cookie was deleted?: " + (wasDeleted ? "yes" : "no"));
         callback(url, name, wasDeleted, null);
     };
 
@@ -181,7 +182,6 @@ UIC(['models', 'cookies'], function (global, ns) {
     ns.cookiesForUrl = function (url, callback) {
 
         var domain = utils.extractDomain(url),
-            path = utils.extractPath(url),
             cookieIterator,
             aCookie,
             possibleCookies = [];
@@ -199,11 +199,9 @@ UIC(['models', 'cookies'], function (global, ns) {
             ]);
         }
 
-        utils.debug(possibleCookies);
         domainsModel.filterWatchedCookies(
             possibleCookies,
-            function filterWatchedCookiesCallback (watchedCookies) {
-                utils.debug(watchedCookies);
+            function filterWatchedCookiesCallback(watchedCookies) {
                 callback(watchedCookies);
             }
         );

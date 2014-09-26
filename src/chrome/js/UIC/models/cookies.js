@@ -52,7 +52,7 @@ UIC(['models', 'cookies'], function (global, ns) {
 
         chromeCookies.remove(
             cookieDetails,
-            function cookieDeleteCallback (details) {
+            function cookieDeleteCallback(details) {
                 if (!callback) {
                     return;
                 }
@@ -81,18 +81,16 @@ UIC(['models', 'cookies'], function (global, ns) {
     ns.cookiesForUrl = function (url, callback) {
 
         var domain = utils.extractDomain(url),
-            path = utils.extractPath(url);
+            query = {
+                url: url,
+                session: false
+            };
 
         utils.debug("Searching for cookies with domain=" + domain);
 
-        var query = {
-            url: url,
-            session: false
-        };
+        chromeCookies.getAll(query, function cookiesForUrlCallback(cookies) {
 
-        chromeCookies.getAll(query, function cookiesForUrlCallback (cookies) {
-
-            var shortCookies = cookies.map(function cookiesMap (cookie) {
+            var shortCookies = cookies.map(function cookiesMap(cookie) {
                 return [cookie.domain + cookie.path,
                         cookie.name,
                         cookie.secure,
@@ -101,7 +99,7 @@ UIC(['models', 'cookies'], function (global, ns) {
 
             domainsModel.filterWatchedCookies(
                 shortCookies,
-                function filterWatchedCookiesCallback (watchedCookies) {
+                function filterWatchedCookiesCallback(watchedCookies) {
                     callback(watchedCookies);
                 }
             );
@@ -114,7 +112,7 @@ UIC(['models', 'cookies'], function (global, ns) {
      * cookie to be whatever is set in the constants file (ie something much
      * shorter that what the host is specifying).
     */
-    chromeCookies.onChanged.addListener(function cookieChecker (changeInfo) {
+    chromeCookies.onChanged.addListener(function cookieChecker(changeInfo) {
 
         var removed = changeInfo.removed,
             cookie = changeInfo.cookie,
@@ -128,66 +126,70 @@ UIC(['models', 'cookies'], function (global, ns) {
         cookieAsStr = utils.cookieToStr(cookie);
 
         domainsModel.shouldAlterCookie(
-            cookie.domain, cookie.name,
-            function shouldAlterCookieCallback (shouldAlter, reason) {
+            cookie.domain,
+            cookie.name,
+            function shouldAlterCookieCallback(shouldAlter, reason) {
 
-            var expireTime = utils.expirationTimeForNewCookie(),
-                newCookie;
+                var expireTime = utils.expirationTimeForNewCookie(),
+                    cookieProtocol = cookie.secure ? "https://" : "http://",
+                    newCookie,
+                    uninterestingReasons = ["overwrite", "expired_overwrite"];
 
-            if (!shouldAlter) {
-                // Dont' print debug information if the reason we're not
-                // altering a cookie is because its name doesn't match that of
-                // a cookie we watch.  This is the common case and doing so adds
-                // WAY too much noise to the logs to be useful
-                if (reason !== 'no-name') {
-                    utils.debug(cookieAsStr + ": Not altering, " + reason);
+                if (!shouldAlter) {
+                    // Dont' print debug information if the reason we're not
+                    // altering a cookie is because its name doesn't match that
+                    // of a cookie we watch.  This is the common case and doing
+                    // so adds WAY too much noise to the logs to be useful
+                    if (reason !== 'no-name' && reason !== 'no-match') {
+                        utils.debug(cookieAsStr + ": Not altering, " + reason);
+                    }
+                    return;
                 }
-                return;
-            }
 
-            // If a cookie is being removed, the we call the given callback
-            // function of it exists and don't handle further
-            if (removed && !(cause in ["overwrite", "expired_overwrite"])) {
-                if (onDeletedCookieCallback) {
-                    onDeletedCookieCallback(
-                        cookie.domain + cookie.path,
-                        cookie.name,
-                        cookie.secure
-                    );
+                // If a cookie is being removed, the we call the given callback
+                // function of it exists and don't handle further.
+                if (removed && uninterestingReasons.indexOf(cause) === -1) {
+                    if (onDeletedCookieCallback) {
+                        onDeletedCookieCallback(
+                            cookie.domain + cookie.path,
+                            cookie.name,
+                            cookie.secure
+                        );
+                    }
+                    return;
                 }
-                return;
+
+                if (cookie.expirationDate <= expireTime) {
+                    utils.debug(cookieAsStr +
+                                ": Not altering, current expiration time is " +
+                                "sooner than the 'shortend' one.");
+                    return;
+                }
+
+                utils.debug(cookieAsStr + ": Setting expiration at " +
+                            utils.timestampToString(expireTime));
+
+                newCookie = {
+                    url: cookieProtocol + cookie.domain + cookie.path,
+                    name: cookie.name,
+                    value: cookie.value,
+                    httpOnly: cookie.httpOnly,
+                    storeId: cookie.storeId,
+                    secure: cookie.secure,
+                    expirationDate: expireTime,
+                    path: cookie.path
+                };
+
+                // If the cookie is set to cover subdomains, explicitly set the
+                // domain, which chrome will interpret as "." + cookie.domain.
+                // Otherwise, don't set the domain at all, and it'll be a
+                // host-only cookie
+                if (cookie.domain.indexOf(".") === 0) {
+                    newCookie.domain = cookie.domain;
+                }
+
+                chromeCookies.set(newCookie);
             }
-
-            if (cookie.expirationDate <= expireTime) {
-                utils.debug(cookieAsStr +
-                            ": Not altering, current expiration time is " +
-                            "sooner than the 'shortend' one.");
-                return;
-            }
-
-            utils.debug(cookieAsStr + ": Setting expiration at " +
-                        utils.timestampToString(expireTime));
-
-            newCookie = {
-                url: (cookie.secure ? "https://" : "http://") + cookie.domain + cookie.path,
-                name: cookie.name,
-                value: cookie.value,
-                httpOnly: cookie.httpOnly,
-                storeId: cookie.storeId,
-                secure: cookie.secure,
-                expirationDate: expireTime,
-                path: cookie.path
-            };
-
-            // If the cookie is set to cover subdomains, explicitly set the
-            // domain, which chrome will interpret as "." + cookie.domain.
-            // Otherwise, don't set the domain at all, and it'll be a host-only
-            // cookie
-            if (cookie.domain.indexOf(".") === 0) {
-                newCookie['domain'] = cookie.domain;
-            }
-
-            chromeCookies.set(newCookie);
-        });
+        );
     });
 });

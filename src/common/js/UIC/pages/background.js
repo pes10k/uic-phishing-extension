@@ -10,11 +10,12 @@ UIC(['pages', 'background'], function (global, ns) {
         // it means that the _previous page_ in this tab had a UIC OAuth2
         // url on it
         prevRedirectUrls = {},
-        debug = utils.debug;
+        debug = utils.debug,
+        nullFunction = function () {};
 
     /**
      * On each page load the the content page will ask the extension if the user
-     * has registred the extension.
+     * has registered the extension.
      *
      * If so, heartbeat ping back to the recording server if needed. Reply to
      * the content page with "registered"
@@ -30,7 +31,7 @@ UIC(['pages', 'background'], function (global, ns) {
         if (!currentUser.installId()) {
             tab.dispatchMessage("response-for-registration", "alert");
         } else {
-            currentUser.heartbeat(function () {});
+            currentUser.heartbeat();
             tab.dispatchMessage("response-for-registration", "registered");
         }
     });
@@ -45,7 +46,6 @@ UIC(['pages', 'background'], function (global, ns) {
         var tab = event.target,
             data = event.data,
             tabId = tab.getId(),
-            currentUrl = data.currentUrl,
             redirectUrl = data.redirectUrl;
 
         if (!prevRedirectUrls[tabId]) {
@@ -83,7 +83,9 @@ UIC(['pages', 'background'], function (global, ns) {
         // current URL
 
         if (data.url.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0 &&
-            redirectUrlQueue && redirectUrlQueue.length === 2 && redirectUrlQueue.peek(-1)) {
+                redirectUrlQueue &&
+                redirectUrlQueue.length === 2 &&
+                redirectUrlQueue.peek(-1)) {
             url = redirectUrlQueue.peek(-1);
         } else {
             url = data.url;
@@ -116,16 +118,15 @@ UIC(['pages', 'background'], function (global, ns) {
                     "id": installId
                 },
                 contentType: "json"
-            },
-            function (result) {});
+            }, nullFunction);
         });
     });
 
     /**
      * Listen for messages from content pages indicating that a password field
-     * was autocompleted. If it was, and we're either in debug mode or the
+     * was auto completed. If it was, and we're either in debug mode or the
      * "autofill" experiment-group, instruct the content page to clear the field
-     * out.  Eitherway, report the password autofill event.
+     * out.  Either way, report the password autofill event.
      */
     kango.addMessageListener("autofill-detected", function (event) {
 
@@ -178,8 +179,7 @@ UIC(['pages', 'background'], function (global, ns) {
     kango.addMessageListener("request-for-config", function (event) {
 
         var configuration = {},
-            tab = event.target,
-            key;
+            tab = event.target;
 
         debug("received request for config");
 
@@ -190,9 +190,9 @@ UIC(['pages', 'background'], function (global, ns) {
 
         if (currentUser.installId()) {
             debug("found config information for extension.");
-            for (key in configuration) {
-                debug(" - " + key + ": " + configuration[key]);
-            }
+            configuration.forEach(function (value, key) {
+                debug(" - " + key + ": " + value);
+            });
         } else {
             debug("no config info for extension found.");
         }
@@ -234,7 +234,7 @@ UIC(['pages', 'background'], function (global, ns) {
                 var currentUrl = event.url;
                 models.cookies.getInstance().cookiesForUrl(
                     currentUrl,
-                    function cookiesForUrlCallback (cookies) {
+                    function cookiesForUrlCallback(cookies) {
                         var prettyCookies = cookies.map(function (cookie) {
                             var cookieUrl = cookie[0],
                                 cookieName = cookie[1],
@@ -251,11 +251,11 @@ UIC(['pages', 'background'], function (global, ns) {
 
         kango.ui.browserButton.addEventListener(
             kango.ui.browserButton.event.COMMAND,
-            function browserButtonCallback () {
+            function browserButtonCallback() {
                 kango.browser.tabs.getCurrent(function (tab) {
                     models.cookies.getInstance().cookiesForUrl(
                         tab.getUrl(),
-                        function cookiesForUrlToDeleteCallback (cookies) {
+                        function cookiesForUrlToDeleteCallback(cookies) {
 
                             var cookieModel = models.cookies.getInstance();
 
@@ -263,7 +263,10 @@ UIC(['pages', 'background'], function (global, ns) {
                                 var cookieUrl = cookie[0],
                                     cookieName = cookie[1],
                                     cookieIsSecure = cookie[2],
-                                    fullCookieUrl = (cookieIsSecure ? 'https://' : 'http://') + cookieUrl;
+                                    cookieProtocol = (cookieIsSecure
+                                        ? 'https://'
+                                        : 'http://'),
+                                    fullCookieUrl = cookieProtocol + cookieUrl;
 
                                 cookieModel.delete(
                                     fullCookieUrl,
@@ -288,17 +291,33 @@ UIC(['pages', 'background'], function (global, ns) {
             }
         );
     }
-},
-function (global, parts) {
+}, function onModuleRegistered(global, parts) {
 
-    // The only loading notifcation we're interested in is models.cookies
+    // The only loading notification we're interested in is models.cookies
     if (parts.join(".") !== 'models.cookies') {
         return;
     }
 
+    // Anytime a cookie we're watching is deleted, we need to notify
+    // all the non-active tabs that if we deleted a cookie their page
+    // depends on, they need to reload the page, to keep their state
+    // as constant as possible.  Note that we don't send this check message
+    // to the currently focused / active tab, to avoid "startling" the user.
     global.models.cookies.getInstance().setOnDeletedCookieCallback(
         function (url, name, isSecure) {
-            global.lib.utils.debug("Watched cookie deleted: " + name + "@" + url);
+            global.lib.utils.debug("Cookie deleted: " + name + "@" + url);
+            kango.browser.tabs.getAll(function (allTabs) {
+                kango.browser.tabs.getCurrent(function (currentTab) {
+                    allTabs.forEach(function (aTab) {
+                        if (aTab !== currentTab) {
+                            aTab.dispatchMessage(
+                                "check-if-cookie-match",
+                                [url, name, isSecure]
+                            );
+                        }
+                    });
+                });
+            });
         }
     );
 });
