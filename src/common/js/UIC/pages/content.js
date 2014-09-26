@@ -188,25 +188,4 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             document.body.insertBefore(topBar, document.body.firstChild);
         }
     );
-
-    // Finally, also lsiten for requests from the background script to check
-    // and see if we should reload the current page because a watched cookie
-    // was deleted.  The background script checks and makes sure that this
-    // message is never sent to the currently focused tab.
-    kango.addMessageListener(
-        "check-if-cookie-match",
-        function checkIfCookieIsForCurrentPage(event) {
-            var deletedCookie = event.data,
-                cookieUrl = deletedCookie[0];
-
-            // if the cookie's URL doesn't match the current URL, then
-            // we know the deleted cookie does not match the current
-            // page
-            if (window.location.href.indexOf(cookieUrl) === -1) {
-                return;
-            }
-
-            window.location.reload();
-        }
-    );
 });

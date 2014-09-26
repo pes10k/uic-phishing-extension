@@ -1,3 +1,4 @@
+/* global UIC, chrome */
 /**
  * Track when cookies are set for the domains we care about, and handle deleting
  * or altering cookies when needed.
@@ -6,26 +7,7 @@ UIC(['models', 'cookies'], function (global, ns) {
 
     var domainsModel = global.models.domains,
         utils = global.lib.utils,
-        chromeCookies = chrome.cookies,
-        onDeletedCookieCallback = null;
-
-    /**
-     * Set a function that will be called whenever a watched cookie is being
-     * deleted / removed from the cookie store
-     *
-     * @param function callback
-     *   A function that will be called with a single argument whenever a
-     *   watched cookie is deleted.  That function will be called with three
-     *   arguments, the cookies url, name, and a boolean description of
-     *   whether it was a secure cookie.
-     *
-     * @return object
-     *   A refrence to the current model object.
-     */
-    ns.setOnDeletedCookieCallback = function (callback) {
-        onDeletedCookieCallback = callback;
-        return this;
-    };
+        chromeCookies = chrome.cookies;
 
     /**
      * Delete a cookie from the current browser cookie jar
@@ -117,9 +99,14 @@ UIC(['models', 'cookies'], function (global, ns) {
         var removed = changeInfo.removed,
             cookie = changeInfo.cookie,
             cause = changeInfo.cause,
-            cookieAsStr;
+            cookieAsStr,
+            uninterestingReasons = ["overwrite", "expired_overwrite"];
 
         if (!cookie) {
+            return;
+        }
+
+        if (removed && uninterestingReasons.indexOf(cause) === -1) {
             return;
         }
 
@@ -132,8 +119,7 @@ UIC(['models', 'cookies'], function (global, ns) {
 
                 var expireTime = utils.expirationTimeForNewCookie(),
                     cookieProtocol = cookie.secure ? "https://" : "http://",
-                    newCookie,
-                    uninterestingReasons = ["overwrite", "expired_overwrite"];
+                    newCookie;
 
                 if (!shouldAlter) {
                     // Dont' print debug information if the reason we're not
@@ -142,19 +128,6 @@ UIC(['models', 'cookies'], function (global, ns) {
                     // so adds WAY too much noise to the logs to be useful
                     if (reason !== 'no-name' && reason !== 'no-match') {
                         utils.debug(cookieAsStr + ": Not altering, " + reason);
-                    }
-                    return;
-                }
-
-                // If a cookie is being removed, the we call the given callback
-                // function of it exists and don't handle further.
-                if (removed && uninterestingReasons.indexOf(cause) === -1) {
-                    if (onDeletedCookieCallback) {
-                        onDeletedCookieCallback(
-                            cookie.domain + cookie.path,
-                            cookie.name,
-                            cookie.secure
-                        );
                     }
                     return;
                 }

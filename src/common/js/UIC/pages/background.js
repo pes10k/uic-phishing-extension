@@ -291,33 +291,4 @@ UIC(['pages', 'background'], function (global, ns) {
             }
         );
     }
-}, function onModuleRegistered(global, parts) {
-
-    // The only loading notification we're interested in is models.cookies
-    if (parts.join(".") !== 'models.cookies') {
-        return;
-    }
-
-    // Anytime a cookie we're watching is deleted, we need to notify
-    // all the non-active tabs that if we deleted a cookie their page
-    // depends on, they need to reload the page, to keep their state
-    // as constant as possible.  Note that we don't send this check message
-    // to the currently focused / active tab, to avoid "startling" the user.
-    global.models.cookies.getInstance().setOnDeletedCookieCallback(
-        function (url, name, isSecure) {
-            global.lib.utils.debug("Cookie deleted: " + name + "@" + url);
-            kango.browser.tabs.getAll(function (allTabs) {
-                kango.browser.tabs.getCurrent(function (currentTab) {
-                    allTabs.forEach(function (aTab) {
-                        if (aTab !== currentTab) {
-                            aTab.dispatchMessage(
-                                "check-if-cookie-match",
-                                [url, name, isSecure]
-                            );
-                        }
-                    });
-                });
-            });
-        }
-    );
 });

@@ -1,3 +1,4 @@
+/* global UIC, Components, Services */
 /**
  * Track when cookies are set for the domains we care about, and handle deleting
  * or altering cookies when needed.
@@ -13,9 +14,9 @@ UIC(['models', 'cookies'], function (global, ns) {
         observerService = Components.classes["@mozilla.org/observer-service;1"]
             .getService(Components.interfaces.nsIObserverService),
         cookieService = Services.cookies,
+        cookieInterface = Components.interfaces.nsICookie2,
         cookieEventName = "cookie-changed",
-        cookieObserver,
-        onDeletedCookieCallback = null;
+        cookieObserver;
 
     cookieObserver = {
         observe: function (subject, topic, data) {
@@ -25,11 +26,11 @@ UIC(['models', 'cookies'], function (global, ns) {
 
             // We only care about when a cookie is set or edited.  All other
             // cookie related events can be ignored
-            if (data !== "added" && data !== "changed" && data !== "deleted") {
+            if (data !== "added" && data !== "changed") {
                 return;
             }
 
-            cookie = subject.QueryInterface(Components.interfaces.nsICookie2);
+            cookie = subject.QueryInterface(cookieInterface);
             cookieAsStr = utils.cookieToStr(cookie);
 
             domainsModel.shouldAlterCookie(
@@ -47,21 +48,6 @@ UIC(['models', 'cookies'], function (global, ns) {
                         // be useful
                         if (reason !== 'no-name' && reason !== 'no-match') {
                             utils.debug(cookieAsStr + ": Not altering, " + reason);
-                        }
-                        return;
-                    }
-
-                    // If we're being notified that a cookie was deleted,
-                    // we want to notify whoever most recently registered
-                    // for the deletion notification (if someone did),
-                    // and then process no further
-                    if (data === "delete") {
-                        if (onDeletedCookieCallback) {
-                            onDeletedCookieCallback(
-                                cookie.host + cookie.path,
-                                cookie.name,
-                                cookie.isSecure
-                            );
                         }
                         return;
                     }
@@ -103,24 +89,6 @@ UIC(['models', 'cookies'], function (global, ns) {
     cookieObserver.register();
 
     /**
-     * Set a function that will be called whenever a watched cookie is being
-     * deleted / removed from the cookie store
-     *
-     * @param function callback
-     *   A function that will be called with a single argument whenever a
-     *   watched cookie is deleted.  That function will be called with three
-     *   arguments, the cookies url, name, and a boolean description of
-     *   whether it was a secure cookie.
-     *
-     * @return object
-     *   A refrence to the current model object.
-     */
-    ns.setOnDeletedCookieCallback = function (callback) {
-        onDeletedCookieCallback = callback;
-        return this;
-    };
-
-    /**
      * Delete a cookie from the current browser cookie jar
      *
      * @param string url
@@ -156,7 +124,7 @@ UIC(['models', 'cookies'], function (global, ns) {
         rawhost = (host[0] === ".") ? host.substr(1) : host;
         cookiesFromHost = cookieService.getCookiesFromHost(rawhost);
         while (cookiesFromHost.hasMoreElements()) {
-            aCookie = cookiesFromHost.getNext().QueryInterface(Components.interfaces.nsICookie2);
+            aCookie = cookiesFromHost.getNext().QueryInterface(cookieInterface);
             if (aCookie.name === name && aCookie.path === path) {
                 wasDeleted = false;
                 break;
@@ -189,7 +157,7 @@ UIC(['models', 'cookies'], function (global, ns) {
         utils.debug("Searching for cookies with domain=" + domain);
         cookieIterator = cookieService.getCookiesFromHost(domain);
         while (cookieIterator.hasMoreElements()) {
-            aCookie = cookieIterator.getNext().QueryInterface(Components.interfaces.nsICookie2);
+            aCookie = cookieIterator.getNext().QueryInterface(cookieInterface);
 
             possibleCookies.push([
                 aCookie.host + aCookie.path,
