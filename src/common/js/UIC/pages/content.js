@@ -41,42 +41,59 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
     watchForm = function (form_node) {
         var pwInput = form_node.querySelector("input[type='password']"),
             pwEntryReported = false,
-            pwFieldHasChanged = false;
+            pwFieldHasChanged = false,
+            bindEventListeners,
+            keyUpEventListener,
+            blurEventListener,
+            changeEventListener;
 
-        if (pwInput) {
-
-            pwInput.value = "";
-            autofillWatcher.addInput(pwInput);
-
-            pwInput.addEventListener('change', function () {
+        keyUpEventListener = function (e) {
+            if (pwInput.value &&         // If some password has been entered..
+                    pwFieldHasChanged && // And the contents of the password
+                                         // field have changed...
+                    13 === e.keyCode &&  // and "return"  is being
+                                         // pressed...
+                    !pwEntryReported) {  // And this isn't redundant
+                pwEntryReported = true;
+                reportPasswordTyped(pwInput);
+            } else if (String.fromCharCode(e.which)) {
                 pwFieldHasChanged = true;
-            }, false);
+            }
+        };
+
+        changeEventListener = function (e) {
+            pwFieldHasChanged = true;
+        };
+
+        blurEventListener = function (e) {
+            if (pwInput.value &&
+                    pwFieldHasChanged &&
+                    !pwEntryReported) {
+                pwEntryReported = true;
+                reportPasswordTyped(pwInput);
+            }
+        };
+
+        bindEventListeners = function () {
+            // Mark fields as dirty once they've changed once.  Otherwise,
+            // if this hasn't fired, then we can disregard the other events.
+            pwInput.addEventListener('change', changeEventListener, false);
 
             // Register password entry if the user hits enter in the password
             // field
-            pwInput.addEventListener('keyup', function (e) {
-                if (pwInput.value &&         // If some password has been entered..
-                        pwFieldHasChanged && // And the contents of the password
-                                             // field have changed...
-                        ([13, 9].indexOf(e.keyCode) !== -1) &&
-                                             // and "return" or "tab" is being
-                                             // pressed...
-                        !pwEntryReported) {  // And this isn't redundant
-                    pwEntryReported = true;
-                    reportPasswordTyped(pwInput);
-                } else if (String.fromCharCode(e.which)) {
-                    pwFieldHasChanged = true;
-                }
-            }, false);
+            pwInput.addEventListener('keyup', keyUpEventListener, false);
 
             // Also register password entry if the user blurs out of the
             // password field
-            pwInput.addEventListener('blur', function () {
-                if (pwInput.value && pwFieldHasChanged && !pwEntryReported) {
-                    pwEntryReported = true;
-                    reportPasswordTyped(pwInput);
-                }
-            }, false);
+            pwInput.addEventListener('blur', blurEventListener, false);
+        };
+
+        if (pwInput) {
+            pwInput.value = "";
+            autofillWatcher.addInput(pwInput);
+
+            bindEventListeners();
+            window.setTimeout(bindEventListeners, 1500);
         }
     };
 

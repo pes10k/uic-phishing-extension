@@ -38,7 +38,7 @@ UIC(['pages', 'background'], function (global, ns) {
 
     /**
      * Register whether the current page has a UIC OAuth2 style redirection
-     * domain * on it.  Note we always keep track of the current page and the
+     * domain on it.  Note we always keep track of the current page and the
      * previous page in this structure.
      */
     kango.addMessageListener("found-redirect-url", function (event) {
@@ -81,7 +81,6 @@ UIC(['pages', 'background'], function (global, ns) {
         // and 2 the previous page the current tab visited had a redirection
         // URL on it, use that URL (the redirection url) instead of the tab's
         // current URL
-
         if (data.url.indexOf("https://ness.uic.edu/bluestem/login.cgi") === 0 &&
                 redirectUrlQueue &&
                 redirectUrlQueue.length === 2 &&

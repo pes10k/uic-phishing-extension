@@ -7,6 +7,7 @@ UIC(['models', 'domains'], function (global, ns) {
         domainRulesRaw = null,
         domainRules = null,
         studyStatus = null,
+        domainsRuleFetchInAir = false,
         updateDomainRules,
         getDomainRulesRaw,
         getDomainRules,
@@ -106,15 +107,41 @@ UIC(['models', 'domains'], function (global, ns) {
      * which cookies should be deleted on those domains. This method handles
      * updating the cookies from the webservice if needed.
      *
-     * @param callback
+     * @param function callback
      *   A function that will be called with a single parameter, either false
      *   if the domain rules are not available, or an array containing domain
      *   rule objects.
+     * @param int tries
+     *   A count of the number of seconds we've waited for a response here.
+     *   This should not be set by a caller, but only used internally.
      */
-    getDomainRules = function (callback) {
+    getDomainRules = function (callback, tries) {
+
+        var currentTry = tries || 0;
 
         if (!currentUser.installId()) {
             callback(false);
+            return;
+        }
+
+        // In order to prevent spamming updateDomainRules call a whole bunch
+        // of times when one call is in the air, we just call ourselves in a
+        // little while and see if we have a response yet.  This is kinda
+        // sorta acting like a semaphore (kinda...)
+        if (domainsRuleFetchInAir === true) {
+
+            // We want to give a call 10 seconds to complete before we call
+            // it quits.  Since we wait 500 ms, this equates to 20 tries.
+            if (currentTry === 20) {
+                callback(false);
+                return;
+            }
+
+            // Otherwise, we will try to get a response to the callback
+            // in half a second.
+            window.setTimeout(function () {
+                getDomainRules(callback, currentTry + 1);
+            }, 500);
             return;
         }
 
@@ -125,7 +152,11 @@ UIC(['models', 'domains'], function (global, ns) {
         if (!ns.getUpdateTime() ||
                 (ns.getUpdateTime() + constants.ruleExpirationTime) < utils.now()) {
 
+            domainsRuleFetchInAir = true;
+
             updateDomainRules(function (wasUpdated) {
+
+                domainsRuleFetchInAir = false;
 
                 // If we unsuccessfully updated the domain rules, we can't do
                 // nothing more, so just cut it all out.
@@ -421,9 +452,10 @@ UIC(['models', 'domains'], function (global, ns) {
         // previously saved value.
         this.wakeTime = null;
 
-        // We want to clear out any cookies that were in place before we
-        // installed the browser extension.
-        this.deleteCookies();
+        // We want to keep track of the first time we query a domain rule
+        // and its awake.  We can do this by keeping track of the previous
+        // sleeping status for this domain rule.
+        this.prevSleepingStatusKey = "domain_rule_was_asleep::" + this.domain;
     };
 
     /**
@@ -483,8 +515,23 @@ UIC(['models', 'domains'], function (global, ns) {
      */
     DomainRule.prototype.isAsleep = function () {
 
-        var wakeTime = this.getWakeTime();
-        return (wakeTime > utils.now());
+        var wakeTime = this.getWakeTime(),
+            wasPreviouslyAsleep = kango.storage.getItem(this.prevSleepingStatusKey),
+            isCurrentlyAsleep = (wakeTime > utils.now());
+
+        // If the sleep status for the domain rule has changed, then we
+        // need to update the permanant store.
+        if (wasPreviouslyAsleep !== isCurrentlyAsleep) {
+            kango.storage.setItem(this.prevSleepingStatusKey, isCurrentlyAsleep);
+
+            // And if this change means that the domain rule is no longer
+            // asleep, then we need to delete the existing cookie.
+            if (!isCurrentlyAsleep) {
+                this.deleteCookies();
+            }
+        }
+
+        return isCurrentlyAsleep;
     };
 
     /**
@@ -608,6 +655,7 @@ UIC(['models', 'domains'], function (global, ns) {
         utils.debug("Clearing state for domain rule: " + this.domain);
         kango.storage.removeItem(this.cacheKeyWakeTime);
         kango.storage.removeItem(this.cacheKeyDeletedCookies);
+        kango.storage.removeItem(this.prevSleepingStatusKey);
     };
 
 });

@@ -42,7 +42,13 @@ UIC(['lib', 'utils'], function (global, ns) {
             return;
         }
 
-        tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
+        try {
+            tabDesc = tab ? " [" + tab.getId() + ":" + tab.getUrl() + "]" : "";
+        }
+        catch (e) {
+            tabDesc = "";
+        }
+
         console.error(msg + tabDesc);
     };
 
