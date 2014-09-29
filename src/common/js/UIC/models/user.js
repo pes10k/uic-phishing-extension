@@ -7,7 +7,32 @@ UIC(["models", "user"], function (global, ns) {
         locallyCachedEmail = null,
         locallyCachedGroup = null,
         locallyCachedInstallId = null,
-        locallyCachedSecret = null;
+        locallyCachedSecret = null,
+        locallyCachedIsDismissed = null;
+
+    /**
+     * Return a flag of whether the user marked that the extension
+     * should just generally be ignored.
+     */
+    ns.extensionIsDismissed = function () {
+
+        if (locallyCachedIsDismissed === null) {
+            locallyCachedIsDismissed = kango.storage.getItem("is_dismissed");
+        }
+
+        return locallyCachedIsDismissed;
+    };
+
+    /**
+     * Setter for the same above value, whether the user has marked the
+     * extensions as being dismissed.
+     */
+    ns.setExtensionsIsDismissed = function (isDismissed) {
+        locallyCachedIsDismissed = isDismissed;
+        kango.storage.setItem("is_dismissed", isDismissed);
+        return this;
+    };
+
 
     /**
      * Returns the current install id for the extension. Will return the string
@@ -173,6 +198,9 @@ UIC(["models", "user"], function (global, ns) {
 
         locallyCachedCheckInTime = null;
         kango.storage.removeItem("check_in_time");
+
+        locallyCachedIsDismissed = null;
+        kango.storage.removeItem("is_dismissed");
     };
 
     /**

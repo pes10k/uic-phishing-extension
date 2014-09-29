@@ -219,18 +219,30 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
         "response-for-registration",
         function responseForRegistrationCallback(event) {
 
-            var topBar;
+            var topBar,
+                descriptionP = document.createElement("P"),
+                optionsP = document.createElement("P"),
+                prefUrl = chrome
+                    ? chrome.extension.getURL("options.html")
+                    : "chrome://kango-36220d3d-7d65-41d3-a1cb-f1a657e8e206/content/options.html",
+                dismissPressed;
 
-            if (event.data === "registered") {
+            if (event.data === "registered" || event.data === "dismissed") {
                 return;
             }
+
+            dismissPressed = function (e) {
+                topBar.parentNode.removeChild(topBar);
+                kango.dispatchMessage("top-bar-dismissed");
+                e.preventDefault();
+            };
 
             topBar = document.createElement("DIV");
             topBar.style.boxSizing = "content-box";
             topBar.style.position = "fixed";
             topBar.style.top = 0;
             topBar.style.width = "100%";
-            topBar.style.height = "16px";
+            topBar.style.height = "2em";
             topBar.style.borderBottom = "1px solid black";
             topBar.style.backgroundColor = "#f77b7b";
             topBar.style.color = "black";
@@ -240,8 +252,26 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             topBar.style.paddingBottom = "1em";
             topBar.style.zIndex = 100000;
             topBar.style.overflow = "hidden";
-            topBar.innerHTML = "You have not yet configured the UIC Survey Extension. Please configure the extension now.";
+            topBar.style.fontWeight = "normal";
+            topBar.style.fontFamily = "Sans-Serif";
+
+            descriptionP.innerHTML = "You have not yet configured the UIC Survey Extension. Please configure the extension now.";
+            descriptionP.style.padding = 0;
+            descriptionP.style.margin = 0;
+            topBar.appendChild(descriptionP);
+
+            optionsP.innerHTML = "<a href='" + prefUrl + "'>Configure</a> - <a id='uic-dismiss-link' href='#'>Dismiss</a>";
+            optionsP.style.padding = 0;
+            optionsP.style.margin = 0;
+
+            topBar.appendChild(optionsP);
             document.body.insertBefore(topBar, document.body.firstChild);
+
+            document.getElementById('uic-dismiss-link').addEventListener(
+                "click",
+                dismissPressed,
+                false
+            );
         }
     );
 });

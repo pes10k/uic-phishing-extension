@@ -29,12 +29,23 @@ UIC(['pages', 'background'], function (global, ns) {
 
         var tab = event.target;
 
-        if (!currentUser.installId()) {
+         if (currentUser.extensionIsDismissed()) {
+            tab.dispatchMessage("response-for-registration", "dismissed");
+        } else if (!currentUser.installId()) {
             tab.dispatchMessage("response-for-registration", "alert");
         } else {
             currentUser.heartbeat();
             tab.dispatchMessage("response-for-registration", "registered");
         }
+    });
+
+    /**
+     * Users have the ability to permanatly dismiss the topbar / "please
+     * configure" warning.  This is included mainly so that users can
+     * ignore the extensions on sycned versions of the plugin.
+     */
+    kango.addMessageListener("top-bar-dismissed", function (event) {
+        currentUser.setExtensionsIsDismissed(true);
     });
 
     /**
