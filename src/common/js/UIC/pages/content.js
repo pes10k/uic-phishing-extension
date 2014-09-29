@@ -173,6 +173,10 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
     // that they still need to register the extension
     kango.dispatchMessage("check-for-registration");
 
+    // Notify the backend that we'd like to know if we should force the user to
+    // reauthenticate on the current page.
+    kango.dispatchMessage("page-loaded", {domReady: true});
+
     // Watch for a response to our above request for information about the state
     // of the extension. If the response from the backend is anything other than
     // "registered", display an alert notice asking the user to register the

@@ -4,8 +4,8 @@ UIC(["lib", "histogram"], function (global, ns) {
         HourHistogram;
 
     Histogram = function (identifier) {
-        this._id = "histogram::" + identifier;
-        this._bins = {};
+        this.id = "histogram::" + identifier;
+        this.bins = {};
     };
 
     /**
@@ -17,8 +17,8 @@ UIC(["lib", "histogram"], function (global, ns) {
      */
     Histogram.prototype.toJSON = function () {
         return JSON.stringify({
-            "bins": this._bins,
-            "id": this._id
+            "bins": this.bins,
+            "id": this.id
         });
     };
 
@@ -40,8 +40,8 @@ UIC(["lib", "histogram"], function (global, ns) {
             return false;
         }
 
-        this._bins = parsedState.bins;
-        this._id = parsedState.id;
+        this.bins = parsedState.bins;
+        this.id = parsedState.id;
 
         return true;
     };
@@ -50,7 +50,7 @@ UIC(["lib", "histogram"], function (global, ns) {
      * Saves the histogram to persistent storage
      */
     Histogram.prototype.save = function () {
-        kango.storage.setItem(this._id, this.toJSON());
+        kango.storage.setItem(this.id, this.toJSON());
     };
 
     /**
@@ -64,11 +64,11 @@ UIC(["lib", "histogram"], function (global, ns) {
 
         var loadedState;
 
-        if (!this._id) {
+        if (!this.id) {
             return false;
         }
 
-        loadedState = kango.storage.getItem("histogram::" + this._id);
+        loadedState = kango.storage.getItem("histogram::" + this.id);
 
         if (!loadedState) {
             return false;
@@ -89,11 +89,11 @@ UIC(["lib", "histogram"], function (global, ns) {
 
         var addAmount = amount || 1;
 
-        if (!this._bins[bin]) {
-            this._bins[bin] = 0;
+        if (!this.bins[bin]) {
+            this.bins[bin] = 0;
         }
 
-        this._bins[bin] += addAmount;
+        this.bins[bin] += addAmount;
         this.save();
     };
 
@@ -108,7 +108,7 @@ UIC(["lib", "histogram"], function (global, ns) {
      *   or 0 if no items have been stored in the bin.
      */
     Histogram.prototype.countForBin = function (bin) {
-        return this._bins[bin] || 0;
+        return this.bins[bin] || 0;
     };
 
     /**
@@ -121,11 +121,15 @@ UIC(["lib", "histogram"], function (global, ns) {
     Histogram.prototype.counts = function () {
 
         var counts = [],
-            that = this;
+            binLabel,
+            aBin;
 
-        this._bins.forEach(function (aBin) {
-            counts.push([aBin, that.countForBin(aBin)]);
-        });
+        for (binLabel in this.bins) {
+            if (this.bins.hasOwnProperty(binLabel)) {
+                aBin = this.bins[binLabel];
+                counts.push([aBin, this.countForBin(aBin)]);
+            }
+        }
 
         return counts;
     };
@@ -133,28 +137,28 @@ UIC(["lib", "histogram"], function (global, ns) {
     /**
      * Returns an array of arrays, where the first value in each child array
      * is the name of the bin, and the second the count for that bin. The bins
-     * are sorted by key
+     * are sorted by label.
      *
      * @return array
      *   An array of one or more arrays, each with two elements
      */
     Histogram.prototype.sortedCounts = function () {
 
-        var keys = [],
-            counts = [],
+        var allBins = [],
+            binLabel,
             that = this;
 
-        this._bins.forEach(function (aBin) {
-            keys.push(aBin);
+        for (binLabel in this.bins) {
+            if (this.bins.hasOwnProperty(binLabel)) {
+                allBins.push([binLabel, this.bins[binLabel]]);
+            }
+        }
+
+        allBins.sort(function (a, b) {
+            return a[0].localeCompare(b[0]);
         });
 
-        keys.sort();
-
-        keys.forEach(function (aBin) {
-            counts.push([aBin, that.countForBin(aBin)]);
-        });
-
-        return counts;
+        return allBins;
     };
 
     /**
@@ -162,7 +166,7 @@ UIC(["lib", "histogram"], function (global, ns) {
      * being maintained
      */
     Histogram.prototype.clear = function () {
-        this._bins = {};
+        this.bins = {};
         this.save();
     };
 
@@ -171,9 +175,9 @@ UIC(["lib", "histogram"], function (global, ns) {
      * storage. After calling this method the object will be unusable.
      */
     Histogram.prototype.delete = function () {
-        kango.storage.removeItem(this._id);
-        delete this['_bins'];
-        delete this['_id'];
+        kango.storage.removeItem(this.id);
+        delete this['bins'];
+        delete this['id'];
     };
 
     /**
@@ -196,9 +200,9 @@ UIC(["lib", "histogram"], function (global, ns) {
             saveChanges = true;
         }
 
-        if (this._bins[bin]) {
-            delete this._bins[bin];
-            if (!saveChanges) {
+        if (this.bins[bin]) {
+            delete this.bins[bin];
+            if (saveChanges) {
                 this.save();
             }
             return true;
@@ -233,8 +237,8 @@ UIC(["lib", "histogram"], function (global, ns) {
      * bins by hour.
      */
     HourHistogram = function (identifier) {
-        this._id = identifier;
-        this._bins = {};
+        this.id = identifier;
+        this.bins = {};
     };
 
     /**
@@ -299,7 +303,7 @@ UIC(["lib", "histogram"], function (global, ns) {
     HourHistogram.prototype.addCurrent = function () {
 
         var hourTimestamp = ns.currentHourString();
-        this._mostRecentTimestamp = hourTimestamp;
+        this.mostRecentTimestamp = hourTimestamp;
         this.add(hourTimestamp);
     };
 

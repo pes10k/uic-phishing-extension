@@ -5,6 +5,7 @@ UIC(['pages', 'background'], function (global, ns) {
         currentUser = models.user.getInstance(),
         utils = global.lib.utils,
         domainModel = models.domains.getInstance(),
+        pageViewsPerHour = global.lib.histogram.loadHourHistogramWithId("uic"),
         // Keep track of the previous UIC OAuth2 url we're directing to.
         // If there is an entry in this object for a given tab id,
         // it means that the _previous page_ in this tab had a UIC OAuth2
@@ -33,6 +34,37 @@ UIC(['pages', 'background'], function (global, ns) {
         } else {
             currentUser.heartbeat();
             tab.dispatchMessage("response-for-registration", "registered");
+        }
+    });
+
+    /**
+     * Every time a page is loaded, we should add it to the histograpm
+     * for the user's browsing history.
+     */
+    kango.addMessageListener("page-loaded", function (event) {
+
+        var tab = event.target,
+            tabId = tab.getId(),
+            url = tab.getUrl(),
+            data = event.data,
+            hourBinsToReport;
+
+        if (data && data.domReady) {
+
+            // Add that we're loading a url to our histogram of pageloads
+            // per hour when the dom is ready.
+            pageViewsPerHour.addCurrent();
+
+            // Then, also see if we have any old histogram counts that we should
+            // report to the recording server
+            hourBinsToReport = pageViewsPerHour.binsBeforePresentHour();
+            debug("Prevous bins");
+            debug(hourBinsToReport);
+            if (hourBinsToReport.length > 0) {
+                currentUser.reportHistogramBins(hourBinsToReport, function (isSuccessful) {
+                    debug("reported histogram usage", tab);
+                });
+            }
         }
     });
 
