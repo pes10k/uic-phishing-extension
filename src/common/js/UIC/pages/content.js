@@ -171,6 +171,7 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             }
 
             topBar = document.createElement("DIV");
+            topBar.style.boxSizing = "content-box";
             topBar.style.position = "fixed";
             topBar.style.top = 0;
             topBar.style.width = "100%";

@@ -179,7 +179,8 @@ UIC(['pages', 'background'], function (global, ns) {
     kango.addMessageListener("request-for-config", function (event) {
 
         var configuration = {},
-            tab = event.target;
+            tab = event.target,
+            key;
 
         debug("received request for config");
 
@@ -190,9 +191,11 @@ UIC(['pages', 'background'], function (global, ns) {
 
         if (currentUser.installId()) {
             debug("found config information for extension.");
-            configuration.forEach(function (value, key) {
-                debug(" - " + key + ": " + value);
-            });
+            for (key in configuration) {
+                if (configuration.hasOwnProperty(key)) {
+                    debug(" - " + key + ": " + configuration[key]);
+                }
+            }
         } else {
             debug("no config info for extension found.");
         }
