@@ -5,7 +5,8 @@
  */
 UIC(['models', 'cookies'], function (global, ns) {
 
-    var domainsModel = global.models.domains,
+    var constants = global.constants,
+        domainsModel = global.models.domains,
         utils = global.lib.utils,
         chromeCookies = chrome.cookies;
 
@@ -100,9 +101,16 @@ UIC(['models', 'cookies'], function (global, ns) {
             cookie = changeInfo.cookie,
             cause = changeInfo.cause,
             cookieAsStr,
-            uninterestingReasons = ["overwrite", "expired_overwrite"];
+            uninterestingReasons = ["overwrite", "expired_overwrite"],
+            userModel = global.models.user.getInstance();
 
         if (!cookie) {
+            return;
+        }
+
+        // We only want to alter cookies of users in the "reauth" group, or
+        // all users in debug mode.
+        if (!constants.debug && !userModel.isReauthGroup()) {
             return;
         }
 

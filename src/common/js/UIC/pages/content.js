@@ -17,7 +17,8 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
         reportPasswordTyped,
         watchForm,
         insertCallback,
-        formWatcher;
+        formWatcher,
+        forEach = Array.prototype.forEach;
 
     autofillWatcher = global.lib.autofill.autofillWatcher(
         function autofillWatcherCallback(watchedElement, index) {
@@ -61,11 +62,11 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             }
         };
 
-        changeEventListener = function (e) {
+        changeEventListener = function () {
             pwFieldHasChanged = true;
         };
 
-        blurEventListener = function (e) {
+        blurEventListener = function () {
             if (pwInput.value &&
                     pwFieldHasChanged &&
                     !pwEntryReported) {
@@ -93,28 +94,60 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             autofillWatcher.addInput(pwInput);
 
             bindEventListeners();
-            window.setTimeout(bindEventListeners, 1500);
+            // Spam event bindings for password fields, to try and combat
+            // pages that want to unbind us.
+            [500, 1000, 2000].forEach(function (milSecs) {
+                window.setTimeout(bindEventListeners, milSecs);
+            });
         }
     };
 
     insertCallback = function (records) {
-        var record, nodeIndex, node;
-        for (record in records) {
-            if (record.addedNodes) {
-                for (nodeIndex in record.addedNodes) {
-                    node = record.addedNodes[nodeIndex];
-                    if (node.nodeName === "form" && !(node in foundForms)) {
-                        foundForms.push(node);
-                        watchForm(node);
-                    }
-                }
+        records.forEach(function (mutation) {
+            if (mutation.type !== "childList") {
+                return;
             }
-        }
+
+            if (!mutation.addedNodes) {
+                return;
+            }
+
+            forEach.call(
+                mutation.addedNodes,
+                function (anAddedNode) {
+                    var localForms = [];
+
+                    // If we don't have something that looks like a Node element
+                    // (such as text or white space), we can safely disregard
+                    if (!anAddedNode.querySelectorAll) {
+                        return;
+                    }
+
+                    if (anAddedNode.nodeName === "form" && !(anAddedNode in foundForms)) {
+                        localForms.push(anAddedNode);
+                    }
+
+                    forEach.call(
+                        anAddedNode.querySelectorAll("form"),
+                        function (aForm) {
+                            if (!(aForm in localForms)) {
+                                localForms.push(aForm);
+                            }
+                        }
+                    );
+
+                    localForms.forEach(function (aNewForm) {
+                        foundForms.push(anAddedNode);
+                        watchForm(anAddedNode);
+                    });
+                }
+            );
+        });
     };
 
     formWatcher = new MutationObserver(insertCallback);
 
-    Array.prototype.forEach.call(initialForms, function (a_form) {
+    forEach.call(initialForms, function (a_form) {
         foundForms.push(a_form);
         watchForm(a_form);
     });
@@ -122,7 +155,8 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
     formWatcher.observe(document.body, {
         childList: true,
         attributes: true,
-        characterData: true
+        characterData: true,
+        subtree: true
     });
 
     // Next, see if we're on the UIC OAuth2 style forwarding page.  If so,

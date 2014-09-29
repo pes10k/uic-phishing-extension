@@ -18,6 +18,7 @@ release : DEBUG = false
 release : EXT_NAME = release
 release : KANGO_FLAGS =
 release : flag flag-ext-info pack all restore
+	@dd if=`ls ${BUILD_DIR}/*.crx` of=${BUILD_DIR}/uic-security-study-extension.zip bs=1 skip=306 2> /dev/null
 
 flag :
 	# Creating copy of constants file ${CONST_FILE} -> ${TMP_CONSTANTS}

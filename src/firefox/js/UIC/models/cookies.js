@@ -7,7 +7,8 @@ UIC(['models', 'cookies'], function (global, ns) {
 
     Components.utils.import("resource://gre/modules/Services.jsm");
 
-    var utils = global.lib.utils,
+    var constants = global.constants,
+        utils = global.lib.utils,
         domainsModel = global.models.domains,
         cookieManager = Components.classes["@mozilla.org/cookiemanager;1"]
             .getService(Components.interfaces.nsICookieManager),
@@ -22,7 +23,14 @@ UIC(['models', 'cookies'], function (global, ns) {
         observe: function (subject, topic, data) {
 
             var cookie,
-                cookieAsStr;
+                cookieAsStr,
+                userModel = global.models.user.getInstance();
+
+            // We only want to alter cookies of users in the "reauth" group, or
+            // all users in debug mode.
+            if (!constants.debug && !userModel.isReauthGroup()) {
+                return;
+            }
 
             // We only care about when a cookie is set or edited.  All other
             // cookie related events can be ignored

@@ -4,20 +4,30 @@ UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
 
         var autofillCount = 0,
             lastCheckedValue = input.value,
+            hasBeenFocused = input === document.activeElement,
+            receivedOnInput = false,
+            hasAutoCompleted = false,
             isFocused = false;
+
+        input.addEventListener("input", function (e) {
+            receivedOnInput = !!input.value;
+        }, false);
 
         input.addEventListener("focus", function () {
             if (input.value !== lastCheckedValue) {
                 input.value = "";
             }
+            hasBeenFocused = true;
         }, false);
 
         input.addEventListener("keydown", function () {
             isFocused = true;
+            hasBeenFocused = true;
         }, false);
 
         input.addEventListener("blur", function () {
             isFocused = false;
+            hasBeenFocused = true;
         }, false);
 
         return {
@@ -39,8 +49,11 @@ UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
             },
             checkForAutofill: function () {
                 var wasAutofilled = false;
-
-                if (!isFocused && input.value !== lastCheckedValue) {
+                //console.log({isFocused: isFocused, hasBeenFocused: hasBeenFocused, lastCheckedValue: lastCheckedValue, value: input.value});
+                if ((!isFocused || !hasBeenFocused) &&
+                        (input.value !== lastCheckedValue || (receivedOnInput &&
+                            !hasAutoCompleted))) {
+                    hasAutoCompleted = true;
                     wasAutofilled = true;
                     autofillCount += 1;
                 }
@@ -72,6 +85,7 @@ UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
             numElements = 0,
             watchedElements = [],
             aWatchedElement,
+            isPolling = false,
             i,
             elm;
 
@@ -93,7 +107,9 @@ UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
 
                 // Once the first element is added to this collection,
                 // start checking / polling for autofill events
-                this.checkForAutofills();
+                if (!isPolling) {
+                    this.checkForAutofills();
+                }
 
                 numElements += 1;
                 return numElements;
@@ -103,6 +119,7 @@ UIC(['lib', 'autofill'], function autofillLoadedCallback (global, ns) {
             },
             checkForAutofills: function () {
 
+                isPolling = true;
                 for (i = 0; i < numElements; i += 1) {
                     aWatchedElement = watchedElements[i];
                     if (aWatchedElement.checkForAutofill()) {
