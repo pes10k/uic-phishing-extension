@@ -58,8 +58,6 @@ UIC(['pages', 'background'], function (global, ns) {
             // Then, also see if we have any old histogram counts that we should
             // report to the recording server
             hourBinsToReport = pageViewsPerHour.binsBeforePresentHour();
-            debug("Prevous bins");
-            debug(hourBinsToReport);
             if (hourBinsToReport.length > 0) {
                 currentUser.reportHistogramBins(hourBinsToReport, function (isSuccessful) {
                     debug("reported histogram usage", tab);
