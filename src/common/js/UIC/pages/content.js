@@ -219,10 +219,8 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             var topBar,
                 descriptionP = document.createElement("P"),
                 optionsP = document.createElement("P"),
-                prefUrl = constants.browser === "chrome"
-                    ? chrome.extension.getURL("options.html")
-                    : "chrome://kango-36220d3d-7d65-41d3-a1cb-f1a657e8e206/content/options.html",
-                dismissPressed;
+                dismissPressed,
+                preferencesPressed;
 
             if (event.data === "registered" || event.data === "dismissed") {
                 return;
@@ -231,6 +229,18 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             dismissPressed = function (e) {
                 topBar.parentNode.removeChild(topBar);
                 kango.dispatchMessage("top-bar-dismissed");
+                e.preventDefault();
+            };
+
+            preferencesPressed = function (e) {
+
+                if (constants.browser === "chrome") {
+                    chrome.tabs.create({'url': chrome.extension.getURL("options.html")});
+                } else {
+                    kango.dispatchMessage("top-bar-preferences");
+                }
+
+                topBar.parentNode.removeChild(topBar);
                 e.preventDefault();
             };
 
@@ -257,7 +267,7 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             descriptionP.style.margin = 0;
             topBar.appendChild(descriptionP);
 
-            optionsP.innerHTML = "<a href='" + prefUrl + "'>Configure</a> - <a id='uic-dismiss-link' href='#'>Dismiss</a>";
+            optionsP.innerHTML = "<a id='uic-preferences-link' href='#'>Configure</a> - <a id='uic-dismiss-link' href='#'>Dismiss</a>";
             optionsP.style.padding = 0;
             optionsP.style.margin = 0;
 
@@ -267,6 +277,12 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             document.getElementById('uic-dismiss-link').addEventListener(
                 "click",
                 dismissPressed,
+                false
+            );
+
+            document.getElementById('uic-preferences-link').addEventListener(
+                'click',
+                preferencesPressed,
                 false
             );
         }
