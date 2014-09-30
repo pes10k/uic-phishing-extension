@@ -222,7 +222,6 @@ UIC(["models", "user"], function (global, ns) {
             url: constants.webserviceDomain + "/register",
             async: true,
             params: {
-                "version": constants.version,
                 "browser": constants.browser,
                 "debug": constants.debug
             },
@@ -301,6 +300,7 @@ UIC(["models", "user"], function (global, ns) {
             url: constants.webserviceDomain + "/email",
             async: true,
             params: {
+                "version": constants.version,
                 "email": this.email()
             },
             contentType: "json"

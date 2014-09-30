@@ -34,6 +34,7 @@ UIC(['models', 'domains'], function (global, ns) {
             url: constants.webserviceDomain + "/cookie-rules",
             async: true,
             params: {
+                "version": constants.version,
                 "id": currentUser.installId()
             },
             contentType: "json"
