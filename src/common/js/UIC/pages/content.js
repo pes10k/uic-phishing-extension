@@ -256,7 +256,7 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             topBar.style.fontWeight = "normal";
             topBar.style.fontFamily = "Sans-Serif";
 
-            descriptionP.innerHTML = "You have not yet configured the UIC Survey Extension. Please configure the extension now.";
+            descriptionP.innerHTML = "If this is your primary web browsing device, please configure the UIC Security Study extension now. If not, it is okay to dismiss this dialog.";
             descriptionP.style.padding = 0;
             descriptionP.style.margin = 0;
             topBar.appendChild(descriptionP);
