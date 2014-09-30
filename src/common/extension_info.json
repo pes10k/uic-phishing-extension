@@ -21,7 +21,7 @@
         "js/UIC/pages/background.js"
     ],
     "homepage_url": "http://www.cs.uic.edu/Bits",
-    "version": "0.24.0",
+    "version": "0.24.2",
     "options_page": "options.html",
     "name": "UIC Security Study",
     "browser_button": { "caption": "Flush Cookies", "tooltipText": "Flush Cookies", "icon": "icons/button.png" },

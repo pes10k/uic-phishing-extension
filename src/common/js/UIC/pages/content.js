@@ -18,6 +18,7 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
         watchForm,
         insertCallback,
         formWatcher,
+        constants = global.constants,
         forEach = Array.prototype.forEach;
 
     autofillWatcher = global.lib.autofill.autofillWatcher(
@@ -203,10 +204,6 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
         }
     );
 
-    // Notify the backend that we'd like to know if we should alert the user
-    // that they still need to register the extension
-    kango.dispatchMessage("check-for-registration");
-
     // Notify the backend that we'd like to know if we should force the user to
     // reauthenticate on the current page.
     kango.dispatchMessage("page-loaded", {domReady: true});
@@ -222,7 +219,7 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             var topBar,
                 descriptionP = document.createElement("P"),
                 optionsP = document.createElement("P"),
-                prefUrl = chrome
+                prefUrl = constants.browser === "chrome"
                     ? chrome.extension.getURL("options.html")
                     : "chrome://kango-36220d3d-7d65-41d3-a1cb-f1a657e8e206/content/options.html",
                 dismissPressed;
@@ -274,4 +271,8 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             );
         }
     );
+
+    // Notify the backend that we'd like to know if we should alert the user
+    // that they still need to register the extension
+    kango.dispatchMessage("check-for-registration");
 });
