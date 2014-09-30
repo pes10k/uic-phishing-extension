@@ -233,13 +233,7 @@ UIC(['pages', 'content'], function contentLoadedCallback(global, ns) {
             };
 
             preferencesPressed = function (e) {
-
-                if (constants.browser === "chrome") {
-                    chrome.tabs.create({'url': chrome.extension.getURL("options.html")});
-                } else {
-                    kango.dispatchMessage("top-bar-preferences");
-                }
-
+                kango.dispatchMessage("top-bar-preferences");
                 topBar.parentNode.removeChild(topBar);
                 e.preventDefault();
             };

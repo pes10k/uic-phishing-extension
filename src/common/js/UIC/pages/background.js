@@ -49,9 +49,13 @@ UIC(['pages', 'background'], function (global, ns) {
     });
 
     kango.addMessageListener("top-bar-preferences", function (event) {
-        Components.utils.import("resource://gre/modules/Services.jsm");
-        // window.openDialog("chrome://kango-36220d3d-7d65-41d3-a1cb-f1a657e8e206/content/options.html");
-        Services.wm.getMostRecentWindow('navigator:browser').BrowserOpenAddonsMgr('addons://detail/{36220D3D-7D65-41D3-A1CB-F1A657E8E206}');
+        if (constants.browser === "firefox") {
+            Components.utils.import("resource://gre/modules/Services.jsm");
+            Services.wm.getMostRecentWindow('navigator:browser')
+                .BrowserOpenAddonsMgr('addons://detail/{36220D3D-7D65-41D3-A1CB-F1A657E8E206}');
+        } else {
+            chrome.tabs.create({'url': chrome.extension.getURL("options.html")});
+        }
     });
 
     /**
