@@ -240,6 +240,7 @@ UIC(["models", "user"], function (global, ns) {
                 url: constants.webserviceDomain + "/email",
                 async: true,
                 params: {
+                    "version": constants.version,
                     "email": email
                 },
                 contentType: "json"
