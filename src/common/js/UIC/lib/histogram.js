@@ -253,10 +253,9 @@ UIC(["lib", "histogram"], function (global, ns) {
 
         var aDate = new Date(),
             dateString = aDate.toLocaleDateString(),
-            timeString = aDate.toLocaleTimeString(),
-            timeParts = timeString.split(":");
+            hours = String(aDate.getHours());
 
-        return dateString + " " + timeParts[0];
+        return dateString + " " + hours;
     };
 
     HourHistogram.prototype = new Histogram();
